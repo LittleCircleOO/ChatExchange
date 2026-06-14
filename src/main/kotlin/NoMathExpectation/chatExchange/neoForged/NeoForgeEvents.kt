@@ -4,12 +4,16 @@ import NoMathExpectation.chatExchange.neoForged.NeoForgeEvents.registries
 import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
+import net.minecraft.commands.CommandBuildContext
+import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.ParserUtils
-import net.minecraft.core.HolderLookup
+import net.minecraft.commands.arguments.ComponentArgument
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.ComponentSerialization
+import net.minecraft.network.chat.ComponentUtils
+import net.minecraft.network.chat.ResolutionContext
 import net.minecraft.network.chat.contents.PlainTextContents
+import net.minecraft.server.permissions.LevelBasedPermissionSet
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
 import net.neoforged.bus.api.EventPriority
 import net.neoforged.bus.api.SubscribeEvent
@@ -45,7 +49,7 @@ object NeoForgeEvents {
             return
         }
 
-        val data = event.player.server.chatExchangeData
+        val data = event.player.level().server.chatExchangeData
         var message = event.message
         val string = ExchangeServer.componentToString(message)
         if ((!ChatExchangeConfig.chat.get() || data.isIgnoredPlayer(event.player.uuid)) && !string.startsWithBroadcastPrefix()) {
@@ -63,7 +67,15 @@ object NeoForgeEvents {
         }
 
         event.message = if (!ChatExchangeConfig.chat.get() || data.isIgnoredPlayer(event.player.uuid)) {
-            Component.literal(ChatExchangeConfig.broadcastPrefix.get()).append(message)
+            runCatching {
+                ChatExchangeConfig.broadcastPrefix.get().parseJsonToComponent(event.player.createCommandSourceStack())
+            }.getOrElse {
+                logger.error(
+                    "Unable to resolve component from command broadcast format. Using default.",
+                    it
+                )
+                ChatExchangeConfig.broadcastPrefix.default.parseJsonToComponent(event.player.createCommandSourceStack())
+            }.copy().append(message)
         } else {
             message
         }
@@ -151,7 +163,7 @@ object NeoForgeEvents {
         )
     }
 
-    internal lateinit var registries: HolderLookup.Provider
+    internal lateinit var registries: CommandBuildContext
         private set
 
     @SubscribeEvent
@@ -176,18 +188,17 @@ object NeoForgeEvents {
                         val component = kotlin.runCatching {
                             ChatExchangeConfig.commandBroadcastFormat
                                 .get()
-                                .format(name)
-                                .parseJsonToComponent()
-                                .copy()
-                                .append(message)
+                                .parseJsonToComponent(context.source)
                         }.getOrElse {
                             logger.error(
                                 "Unable to resolve component from command broadcast format. Using default.",
                                 it
                             )
                             context.source.sendSystemMessage("chatexchange.const.exception".toExchangeServerTranslatedLiteral())
-                            Component.literal("<$name> $message")
-                        }
+                            ChatExchangeConfig.commandBroadcastFormat
+                                .default
+                                .parseJsonToComponent(context.source)
+                        }.copy().append(message)
 
                         logger.info(component.getStringWithLanguage(ExchangeServer.language))
                         ExchangeServer.sendEvent(
@@ -222,7 +233,7 @@ object NeoForgeEvents {
                             return@executes 0
                         }
 
-                        val data = player.server.chatExchangeData
+                        val data = player.level().server.chatExchangeData
                         val toggle = BoolArgumentType.getBool(context, "toggle")
                         if (toggle) {
                             data.removeIgnoredPlayer(player.uuid)
@@ -240,7 +251,7 @@ object NeoForgeEvents {
                         return@executes 0
                     }
 
-                    val data = player.server.chatExchangeData
+                    val data = player.level().server.chatExchangeData
                     if (data.isIgnoredPlayer(player.uuid)) {
                         player.sendSystemMessage("chatexchange.command.chatexchange.broadcastme.isoff".toExchangeServerTranslatedLiteral())
                     } else {
@@ -264,6 +275,15 @@ object NeoForgeEvents {
     }
 }
 
-fun String.parseJsonToComponent(): Component {
-    return ParserUtils.parseJson(registries, StringReader(this), ComponentSerialization.CODEC)
+fun String.parseJsonToComponent(commandSourceStack: CommandSourceStack? = null, entity: Entity? = null): Component {
+    val raw = runCatching {
+        ComponentArgument.textComponent(registries).parse(StringReader(this))
+    }.getOrElse { Component.translatableEscape("argument.component.invalid", this) }
+    return ComponentUtils.resolve(
+        ResolutionContext.builder().apply {
+            commandSourceStack?.let { withSource(it.withPermission(LevelBasedPermissionSet.GAMEMASTER)) }
+            entity?.let { withEntityOverride(it) }
+        }.build(),
+        raw,
+    )
 }

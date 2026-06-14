@@ -33,7 +33,7 @@ public abstract class ServerGamePacketListenerImplMixin implements ServerGamePac
             return;
         }
 
-        var data = ChatExchangeDataKt.getChatExchangeData(player.server);
+        var data = ChatExchangeDataKt.getChatExchangeData(player.level().getServer());
         var string = packet.message();
         if ((!ChatExchangeConfig.INSTANCE.getChat().get() || data.isIgnoredPlayer(player.getUUID())) && !ChatExchangeConfigKt.startsWithBroadcastPrefix(string)) {
             return;
@@ -50,18 +50,15 @@ public abstract class ServerGamePacketListenerImplMixin implements ServerGamePac
                 )
         );
 
+        var format = ChatExchangeConfig.INSTANCE.getCommandBroadcastFormat();
         Component component;
         try {
-            var prefix = ChatExchangeConfig.INSTANCE
-                    .getCommandBroadcastFormat()
-                    .get()
-                    .formatted(playerName);
-            component = NeoForgeEventsKt.parseJsonToComponent(prefix);
+            component = NeoForgeEventsKt.parseJsonToComponent(format.get(), player.createCommandSourceStack(), null);
         } catch (Exception e) {
             chatExchange$LOGGER.warn("Failed to format message from command broadcast format. Using default.", e);
-            component = Component.literal("<%s>".formatted(playerName));
+            component = NeoForgeEventsKt.parseJsonToComponent(format.getDefault(), player.createCommandSourceStack(), null);
         }
         component = component.copy().append(newString);
-        player.server.getPlayerList().broadcastSystemMessage(component, false);
+        player.level().getServer().getPlayerList().broadcastSystemMessage(component, false);
     }
 }

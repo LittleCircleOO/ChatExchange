@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger
  * An example for blocks is in the `blocks` package of this mod.
  */
 @Mod(ChatExchange.ID)
-@EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = ChatExchange.ID)
 object ChatExchange {
     const val ID = "chatexchange"
 

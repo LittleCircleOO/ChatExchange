@@ -2,9 +2,9 @@ plugins {
     id("java-library")
     id("maven-publish")
     id("idea")
-    id("net.neoforged.moddev") version "2.0.78"
-    kotlin("jvm") version "2.1.0"
-    kotlin("plugin.serialization") version "2.1.0"
+    id("net.neoforged.moddev") version "2.0.141"
+    kotlin("jvm") version "2.3.0"
+    kotlin("plugin.serialization") version "2.3.0"
     //id("io.ktor.plugin") version "3.1.1"
 }
 
@@ -32,21 +32,14 @@ base {
     archivesName = mod_id
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
-kotlin.jvmToolchain(21)
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+kotlin.jvmToolchain(25)
 
 val neo_version: String by project
-val parchment_mappings_version: String by project
-val parchment_minecraft_version: String by project
 
 neoForge {
     // Specify the version of NeoForge to use.
     version = neo_version
-
-    parchment {
-        mappingsVersion = parchment_mappings_version
-        minecraftVersion = parchment_minecraft_version
-    }
 
     // This line is optional. Access Transformers are automatically detected
     // accessTransformers.add('src/main/resources/META-INF/accesstransformer.cfg')
@@ -76,7 +69,7 @@ neoForge {
         }
 
         create("data") {
-            data()
+            clientData()
 
             // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
             // gameDirectory = project.file('run-data')
@@ -136,16 +129,10 @@ dependencies {
                 prefer(prefer) // The version actually used in your dev workspace
             }
         })
-        "additionalRuntimeClasspath"("$dependency:$prefer")
     }
 
     // kff
-    implementation("thedarkcolour:kotlinforforge-neoforge:5.7.0:slim")
-    "additionalRuntimeClasspath"("org.jetbrains.kotlin:kotlin-stdlib")
-    "additionalRuntimeClasspath"("org.jetbrains.kotlin:kotlin-reflect")
-    "additionalRuntimeClasspath"("org.jetbrains.kotlinx:kotlinx-coroutines-core")
-    "additionalRuntimeClasspath"("org.jetbrains.kotlinx:kotlinx-serialization-core")
-    "additionalRuntimeClasspath"("org.jetbrains.kotlinx:kotlinx-serialization-json")
+    implementation("thedarkcolour:kotlinforforge-neoforge:6.1.0a")
 
     // ktor
     externalImplementation("io.ktor:ktor-io", "[2.0, 4.0)", "2.3.13")
@@ -154,7 +141,7 @@ dependencies {
 
     // chatimage
     compileOnly("io.github.kituin:ChatImageCode:0.12.1")
-    compileOnly("io.github.kituin:ChatImage:1.4.6+1.21.0+neoforge")
+//    compileOnly("io.github.kituin:ChatImage:1.4.6+1.21.0+neoforge")
 
     // Example mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
@@ -224,7 +211,7 @@ publishing {
     }
     repositories {
         maven {
-            url = uri("file://${project.projectDir}/repo")
+            url = project.projectDir.resolve("repo").toURI()
         }
     }
 }

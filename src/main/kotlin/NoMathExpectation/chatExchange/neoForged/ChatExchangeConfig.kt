@@ -11,69 +11,68 @@ import thedarkcolour.kotlinforforge.neoforge.forge.runWhenOn
 
 @EventBusSubscriber(
     modid = ChatExchange.ID,
-    bus = EventBusSubscriber.Bus.MOD
 )
 object ChatExchangeConfig {
     private val builder = ModConfigSpec.Builder()
 
     val host: ModConfigSpec.ConfigValue<String> = builder.comment("The host to bind the exchange server to.")
-        .translation("modid.config.host")
+        .translation("chatexchange.config.host")
         .worldRestart()
         .define("host", "0.0.0.0")
     val port: ModConfigSpec.IntValue = builder.comment("The port to bind the exchange server to.")
-        .translation("modid.config.port")
+        .translation("chatexchange.config.port")
         .worldRestart()
         .defineInRange("port", 9002, 0, 65535)
     val token: ModConfigSpec.ConfigValue<String> =
         builder.comment("The token to authenticate with the exchange server.", "Leave blank to disable authentication.")
-            .translation("modid.config.token")
+            .translation("chatexchange.config.token")
             .worldRestart()
             .define("token", "")
     val language: ModConfigSpec.ConfigValue<String> = builder.comment("The language the exchange server messages will be.", "Leave blank to use the language the game is using.")
-        .translation("modid.config.language")
+        .translation("chatexchange.config.language")
         .worldRestart()
         .define("language", "")
     val maxSafeReadBytesPerEvent: ModConfigSpec.ConfigValue<Int> = builder.comment("The max bytes for each event to be read from client.", "Clients who send events that exceed this limit will result in immediate disconnection.")
-        .translation("modid.config.maxSafeReadBytesPerEvent")
+        .translation("chatexchange.config.maxSafeReadBytesPerEvent")
         .worldRestart()
         .defineInRange("maxSafeReadBytesPerEvent", 1024 * 1024, 1, Int.MAX_VALUE)
     val maxConnectionsPerAddress: ModConfigSpec.ConfigValue<Int> = builder.comment("The max client connections for each address.")
-        .translation("modid.config.maxConnectionsPerAddress")
+        .translation("chatexchange.config.maxConnectionsPerAddress")
         .worldRestart()
         .defineInRange("maxConnectionsPerAddress", 5, 1, Int.MAX_VALUE)
 
     val mixinMode: ModConfigSpec.BooleanValue = builder.comment("Whether to use mixin instead of event to listen to server chats.", "If the exchange server isn't sending server chat, try turn this on.")
-        .translation("modid.config.mixinMode")
+        .translation("chatexchange.config.mixinMode")
         .define("mixinMode", false)
 
     val ignoreBotRegex: ModConfigSpec.ConfigValue<String> = builder.comment("The regex to match and ignore the bot players.", "Leave blank to disable.")
-        .translation("modid.config.ignoreBotRegex")
-        .define("ignoreBotRegex", "") {
+        .translation("chatexchange.config.ignoreBotRegex")
+        .define("ignoreBotRegex", "") { it: Any? ->
             kotlin.runCatching {
                 val str = it as String
                 if (str.isBlank()) {
                     return@runCatching true
                 }
 
-                it.toRegex()
+                str.toRegex()
                 true
             }.getOrDefault(false)
         }
     val chat: ModConfigSpec.BooleanValue = builder.comment("Whether to broadcast player chatting.", "Players can also broadcast their message by prefixing @broadcast.")
-        .translation("modid.config.chat")
+        .translation("chatexchange.config.chat")
         .define("chat", true)
     val joinLeave: ModConfigSpec.BooleanValue = builder.comment("Whether to broadcast player joining and leaving.")
-        .translation("modid.config.joinLeave")
+        .translation("chatexchange.config.joinLeave")
         .define("joinLeave", true)
     val death: ModConfigSpec.BooleanValue = builder.comment("Whether to broadcast player deaths.")
-        .translation("modid.config.death")
+        .translation("chatexchange.config.death")
         .define("death", true)
     val advancement: ModConfigSpec.BooleanValue = builder.comment("Whether to broadcast player advancements.")
-        .translation("modid.config.advancement")
+        .translation("chatexchange.config.advancement")
         .define("advancement", true)
 
     val broadcastTriggerPrefix: ModConfigSpec.ConfigValue<MutableList<out String>> = builder.comment("The prefix to recognize to trigger broadcast in chat message.")
-        .translation("modid.config.broadcastTriggerPrefix")
+        .translation("chatexchange.config.broadcastTriggerPrefix")
         .defineListAllowEmpty(
             "broadcastTriggerPrefix",
             { mutableListOf("@广播", "@bc", "@broadcast") },
@@ -81,14 +80,25 @@ object ChatExchangeConfig {
             { true }
         )
     val broadcastPrefix: ModConfigSpec.ConfigValue<String> = builder.comment("The prefix to prepend when player broadcast message through player chat.")
-        .translation("modid.config.broadcastPrefix")
-        .define("broadcastPrefix", "")
+        .translation("chatexchange.config.broadcastPrefix")
+        .define("broadcastPrefix", "[]") { it: Any? ->
+            testJson(it as? String)
+        }
     val commandBroadcastFormat: ModConfigSpec.ConfigValue<String> = builder.comment("The message format when player broadcast message through system chat.", "Will not prepend broadcast prefix.")
-        .translation("modid.config.commandBroadcastFormat")
-        .define("commandBroadcastFormat", "\"<%s> \"")
+        .translation("chatexchange.config.commandBroadcastFormat")
+        .define("commandBroadcastFormat", """["<", {"selector": "@s"}, "> "]""") { it: Any? ->
+            testJson(it as? String)
+        }
     val receiveMessageFormat: ModConfigSpec.ConfigValue<String> = builder.comment("The message format when receiving message from outside.")
-        .translation("modid.config.receiveMessageFormat")
-        .define("receiveMessageFormat", "\"<%s> \"")
+        .translation("chatexchange.config.receiveMessageFormat")
+        .define("receiveMessageFormat", $$"""["<", "$name", "> "]""") { it: Any? ->
+            testJson(it as? String)
+        }
+
+    private fun testJson(text: String?) = runCatching {
+        text?.parseJsonToComponent() ?: return@runCatching false
+        true
+    }.getOrDefault(false)
 
     val spec: ModConfigSpec = builder.build()
 

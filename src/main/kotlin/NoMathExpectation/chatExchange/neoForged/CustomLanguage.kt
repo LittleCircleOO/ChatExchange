@@ -5,7 +5,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.FormattedText
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.network.chat.Style
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.PackType
 import net.minecraft.server.packs.resources.MultiPackResourceManager
@@ -69,7 +69,7 @@ fun languageOf(lang: String, server: MinecraftServer): Language {
     val clientResources = MultiPackResourceManager(PackType.CLIENT_RESOURCES, resourceManager.listPacks().toList())
     val loaded = clientResources.namespaces.map { namespace ->
         runCatching {
-            val langResource = ResourceLocation.fromNamespaceAndPath(namespace, langFile)
+            val langResource = Identifier.fromNamespaceAndPath(namespace, langFile)
             clientResources.getResourceStack(langResource).forEach { resource ->
                 resource.open().use {
                     Language.loadFromJson(it, textMap::put, componentMap::put)
@@ -104,7 +104,7 @@ fun Component.getStringWithLanguage(language: Language): String {
 fun Component.toLiteral(language: Language = Language.getInstance()): Component =
     Component.literal(getStringWithLanguage(language))
 
-fun String.toTranslatableComponent(vararg args: Any?): MutableComponent = Component.translatable(this, *args)
+fun String.toTranslatableComponent(vararg args: Any): MutableComponent = Component.translatable(this, *args)
 
-fun String.toTranslatedLiteral(vararg args: Any?, language: Language = Language.getInstance()): Component =
+fun String.toTranslatedLiteral(vararg args: Any, language: Language = Language.getInstance()): Component =
     Component.translatable(this, *args).toLiteral(language)
