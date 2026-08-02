@@ -12,6 +12,7 @@ object ChatExchange : ModInitializer {
         LOGGER.info("Hello! This is working!")
 
         ChatExchangeConfig.register()
+        registerChatExchangePlaceholders()
         ExchangeHooks.register()
     }
 }

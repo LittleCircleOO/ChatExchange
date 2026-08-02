@@ -32,6 +32,10 @@ repositories {
 		name = "KituinMavenReleases"
 		url = uri("https://maven.kituin.fun/releases")
 	}
+	maven {
+		name = "NucleoidMaven"
+		url = uri("https://maven.nucleoid.xyz")
+	}
 }
 
 dependencies {
@@ -55,6 +59,9 @@ dependencies {
 
 	// ChatImageCode: compile-only; provided at runtime by the optional ChatImage mod.
 	compileOnly("io.github.kituin:ChatImageCode:0.12.1")
+
+	// TextPlaceholderAPI: Simplified Text Format + placeholders for chat formatting. jij-bundled.
+	include(implementation("eu.pb4:placeholder-api:3.1.0-beta.1+26.2")!!)
 }
 
 tasks.processResources {

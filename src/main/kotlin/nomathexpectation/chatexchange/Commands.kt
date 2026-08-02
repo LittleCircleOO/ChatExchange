@@ -1,47 +1,14 @@
 package nomathexpectation.chatexchange
 
-import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
-import net.minecraft.commands.CommandBuildContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
-import net.minecraft.commands.arguments.ComponentArgument
-import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.ComponentUtils
-import net.minecraft.network.chat.ResolutionContext
-import net.minecraft.network.chat.contents.PlainTextContents
-import net.minecraft.server.permissions.LevelBasedPermissionSet
-import net.minecraft.world.entity.Entity
 import org.apache.logging.log4j.LogManager
-import kotlin.jvm.optionals.getOrNull
 
 private val logger = LogManager.getLogger(ChatExchange.MOD_ID)
 
-internal var registries: CommandBuildContext? = null
-    private set
-
-fun String.parseJsonToComponent(commandSourceStack: CommandSourceStack? = null, entity: Entity? = null): Component {
-    val ctx = registries
-    val raw = if (ctx != null) {
-        runCatching {
-            ComponentArgument.textComponent(ctx).parse(StringReader(this))
-        }.getOrElse { Component.translatableEscape("argument.component.invalid", this) }
-    } else {
-        Component.translatableEscape("argument.component.invalid", this)
-    }
-    return ComponentUtils.resolve(
-        ResolutionContext.builder().apply {
-            commandSourceStack?.let { withSource(it.withPermission(LevelBasedPermissionSet.GAMEMASTER)) }
-            entity?.let { withEntityOverride(it) }
-        }.build(),
-        raw,
-    )
-}
-
-fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandSourceStack>, buildContext: CommandBuildContext, environment: Commands.CommandSelection) {
-    registries = buildContext
-
+fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandSourceStack>, environment: Commands.CommandSelection) {
     if (environment != Commands.CommandSelection.DEDICATED) {
         return
     }
@@ -51,21 +18,20 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
             Commands.literal("send").then(
                 Commands.argument("message", StringArgumentType.greedyString()).executes { context ->
                     val message = StringArgumentType.getString(context, "message")
+                    val format = ChatExchangeConfig.commandBroadcastFormat
 
                     val name = ExchangeServer.componentToString(context.source.displayName)
 
                     val component = kotlin.runCatching {
-                        ChatExchangeConfig.commandBroadcastFormat.get()
-                            .parseJsonToComponent(context.source)
+                        Formatting.formatBroadcast(format.get(), context.source, message)
                     }.getOrElse {
                         logger.error(
                             "Unable to resolve component from command broadcast format. Using default.",
                             it
                         )
                         context.source.sendSystemMessage("chatexchange.const.exception".toExchangeServerTranslatedLiteral())
-                        ChatExchangeConfig.commandBroadcastFormat.default
-                            .parseJsonToComponent(context.source)
-                    }.copy().append(message)
+                        Formatting.formatBroadcast(format.default, context.source, message)
+                    }
 
                     logger.info(component.getStringWithLanguage(ExchangeServer.language))
                     ExchangeServer.sendEvent(
@@ -129,14 +95,16 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
             }
         ).executes { context ->
             context.source.sendSystemMessage(
-                "chatexchange.command.chatexchange.description".toExchangeServerTranslatedLiteral(
-                    ChatExchangeConfig.broadcastTriggerPrefix.get().joinToString("/")
-                )
+                "chatexchange.command.chatexchange.description".toExchangeServerTranslatedLiteral()
             )
             1
         }
     val command = dispatcher.register(commandBuilder)
 
-    val shortcutBuilder = Commands.literal("ce").redirect(command)
-    dispatcher.register(shortcutBuilder)
+    dispatcher.register(Commands.literal("ce").redirect(command))
+
+    // Top-level aliases: /bc <message> == /chatexchange send <message>;
+    // /bcme <true|false> == /chatexchange broadcastme <true|false>.
+    dispatcher.register(Commands.literal("bc").redirect(command.getChild("send")))
+    dispatcher.register(Commands.literal("bcme").redirect(command.getChild("broadcastme")))
 }

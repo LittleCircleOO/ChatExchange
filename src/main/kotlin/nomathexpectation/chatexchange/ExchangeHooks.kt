@@ -13,8 +13,8 @@ internal object ExchangeHooks {
             ExchangeServer.stopInstance()
         }
 
-        CommandRegistrationCallback.EVENT.register { dispatcher, buildContext, environment ->
-            registerCommands(dispatcher, buildContext, environment)
+        CommandRegistrationCallback.EVENT.register { dispatcher, _, environment ->
+            registerCommands(dispatcher, environment)
         }
     }
 }

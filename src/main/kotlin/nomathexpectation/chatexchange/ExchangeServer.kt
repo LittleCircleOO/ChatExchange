@@ -8,15 +8,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
-import net.minecraft.commands.CommandSourceStack
 import net.minecraft.locale.Language
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.MutableComponent
-import net.minecraft.network.chat.contents.PlainTextContents
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.permissions.LevelBasedPermissionSet
-import net.minecraft.world.phys.Vec2
-import net.minecraft.world.phys.Vec3
 import org.apache.logging.log4j.LogManager
 import kotlin.time.Duration.Companion.seconds
 
@@ -150,40 +144,22 @@ class ExchangeServer(
                     return@runCatching
                 }
 
-                val source = CommandSourceStack(
-                    minecraftServer,
-                    Vec3.atLowerCornerOf(minecraftServer.respawnData.pos()),
-                    Vec2.ZERO,
-                    minecraftServer.findRespawnDimension(),
-                    LevelBasedPermissionSet.GAMEMASTER,
-                    event.from,
-                    Component.literal(event.from),
-                    minecraftServer,
-                    null,
-                )
-
-                fun Component.replaceName(): MutableComponent {
-                    var finalComponent = copy()
-                    val contents = contents
-                    if (contents is PlainTextContents && contents.text() == $$"$name") {
-                        finalComponent = Component.literal(event.from).withStyle(style)
-                    }
-                    val siblings = finalComponent.siblings.toList()
-                    finalComponent.siblings.clear()
-                    finalComponent.siblings += siblings.map {
-                        it.replaceName()
-                    }
-                    return finalComponent
-                }
-
                 val formatted = kotlin.runCatching {
-                    ChatExchangeConfig.receiveMessageFormat.get()
-                        .parseJsonToComponent(source)
+                    Formatting.formatReceive(
+                        ChatExchangeConfig.receiveMessageFormat.get(),
+                        minecraftServer,
+                        event.from,
+                        event.content,
+                    )
                 }.getOrElse {
                     logger.warn("Failed to format message from receive message format. Using default.", it)
-                    ChatExchangeConfig.receiveMessageFormat.default
-                        .parseJsonToComponent(source)
-                }.replaceName().append(event.content)
+                    Formatting.formatReceive(
+                        ChatExchangeConfig.receiveMessageFormat.default,
+                        minecraftServer,
+                        event.from,
+                        event.content,
+                    )
+                }
 
                 logger.info(formatted.getStringWithLanguage(language))
                 minecraftServer.playerList.players.forEach {

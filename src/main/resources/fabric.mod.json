@@ -26,7 +26,8 @@
 		"java": ">=25",
 		"fabric-api": "*",
 		"fabric-language-kotlin": "*",
-		"forgeconfigapiport": ">=26.2"
+		"forgeconfigapiport": ">=26.2",
+		"placeholder-api": ">=3.1.0-beta.1"
 	},
 	"recommends": {
 		"chatimage": "*"

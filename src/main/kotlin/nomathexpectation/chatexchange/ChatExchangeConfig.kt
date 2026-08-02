@@ -63,34 +63,16 @@ object ChatExchangeConfig {
         .translation("chatexchange.config.advancement")
         .define("advancement", true)
 
-    val broadcastTriggerPrefix: ModConfigSpec.ConfigValue<MutableList<out String>> = builder.comment("The prefix to recognize to trigger broadcast in chat message.")
-        .translation("chatexchange.config.broadcastTriggerPrefix")
-        .defineListAllowEmpty(
-            "broadcastTriggerPrefix",
-            { mutableListOf("@广播", "@bc", "@broadcast") },
-            { "@broadcast" },
-            { true }
-        )
-    val broadcastPrefix: ModConfigSpec.ConfigValue<String> = builder.comment("The prefix to prepend when player broadcast message through player chat.")
-        .translation("chatexchange.config.broadcastPrefix")
-        .define("broadcastPrefix", "[]") { it: Any? ->
-            testJson(it as? String)
-        }
-    val commandBroadcastFormat: ModConfigSpec.ConfigValue<String> = builder.comment("The message format when player broadcast message through system chat.", "Will not prepend broadcast prefix.")
+    val commandBroadcastFormat: ModConfigSpec.ConfigValue<String> = builder.comment("The message format when player broadcast message through system chat.", "Uses Simplified Text Format. Local vars: player (display name), message (broadcast body). Will not prepend broadcast prefix.")
         .translation("chatexchange.config.commandBroadcastFormat")
-        .define("commandBroadcastFormat", """["<", {"selector": "@s"}, "> "]""") { it: Any? ->
-            testJson(it as? String)
+        .define("commandBroadcastFormat", $$"""<${player}> ${message}""") { it: Any? ->
+            Formatting.validate(it as? String)
         }
-    val receiveMessageFormat: ModConfigSpec.ConfigValue<String> = builder.comment("The message format when receiving message from outside.")
+    val receiveMessageFormat: ModConfigSpec.ConfigValue<String> = builder.comment("The message format when receiving message from outside.", "Uses Simplified Text Format. Local vars: name (external sender), message.")
         .translation("chatexchange.config.receiveMessageFormat")
-        .define("receiveMessageFormat", $$"""["<", "$name", "> "]""") { it: Any? ->
-            testJson(it as? String)
+        .define("receiveMessageFormat", $$"""<${name}> ${message}""") { it: Any? ->
+            Formatting.validate(it as? String)
         }
-
-    private fun testJson(text: String?) = runCatching {
-        text?.parseJsonToComponent() ?: return@runCatching false
-        true
-    }.getOrDefault(false)
 
     val spec: ModConfigSpec = builder.build()
 
@@ -115,19 +97,3 @@ object ChatExchangeConfig {
         return regex.matches(name)
     }
 }
-
-fun String.startsWithBroadcastPrefix() =
-    ChatExchangeConfig.broadcastTriggerPrefix
-        .get()
-        .any { startsWith(it) }
-
-fun String.removeBroadcastPrefix() = run {
-    ChatExchangeConfig.broadcastTriggerPrefix
-        .get()
-        .forEach {
-            if (startsWith(it)) {
-                return@run removePrefix(it)
-            }
-        }
-    this
-}.trimStart()
