@@ -1,13 +1,12 @@
-package NoMathExpectation.chatExchange.neoForged.chatImage
+package nomathexpectation.chatexchange
 
-import NoMathExpectation.chatExchange.neoForged.ChatExchange
 import io.github.kituin.ChatImageCode.ChatImageCode
 import io.github.kituin.ChatImageCode.ServerStorage
 import kotlinx.coroutines.delay
 import org.apache.logging.log4j.LogManager
 import kotlin.time.Duration.Companion.seconds
 
-private val logger = LogManager.getLogger(ChatExchange.ID)
+private val logger = LogManager.getLogger(ChatExchange.MOD_ID)
 
 private val ciCodeRegex = ChatImageCode.pattern.toRegex()
 
@@ -19,7 +18,6 @@ private suspend fun findImageData(query: String): String? {
             return it
         }
     }
-    //logger.info(ServerStorage.SERVER_BLOCK_CACHE.blockCache)
     return null
 }
 

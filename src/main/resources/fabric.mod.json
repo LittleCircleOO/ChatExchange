@@ -1,0 +1,34 @@
+{
+	"schemaVersion": 1,
+	"id": "chatexchange",
+	"version": "${version}",
+	"name": "ChatExchange",
+	"description": "A mod to share chat.",
+	"authors": [
+		"NoMathExpectation"
+	],
+	"license": "All Rights Reserved",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			{
+				"value": "nomathexpectation.chatexchange.ChatExchange",
+				"adapter": "kotlin"
+			}
+		]
+	},
+	"mixins": [
+		"chatexchange.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*",
+		"fabric-language-kotlin": "*",
+		"forgeconfigapiport": ">=26.2"
+	},
+	"recommends": {
+		"chatimage": "*"
+	}
+}

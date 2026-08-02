@@ -1,9 +1,9 @@
-package NoMathExpectation.chatExchange.neoForged.chatImage
+package nomathexpectation.chatexchange
 
-import net.neoforged.fml.ModList
+import net.fabricmc.loader.api.FabricLoader
 
 internal val chatImageLoaded
-    get() = ModList.get().isLoaded("chatimage")
+    get() = FabricLoader.getInstance().isModLoaded("chatimage")
 
 suspend fun String.tryParseCICodeFileToData(): String {
     if (!chatImageLoaded) {

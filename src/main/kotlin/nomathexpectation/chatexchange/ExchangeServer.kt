@@ -1,6 +1,5 @@
-package NoMathExpectation.chatExchange.neoForged
+package nomathexpectation.chatexchange
 
-import NoMathExpectation.chatExchange.neoForged.chatImage.tryParseCICodeFileToData
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.util.network.*
@@ -8,6 +7,7 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.Json
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.locale.Language
 import net.minecraft.network.chat.Component
@@ -19,6 +19,9 @@ import net.minecraft.world.phys.Vec2
 import net.minecraft.world.phys.Vec3
 import org.apache.logging.log4j.LogManager
 import kotlin.time.Duration.Companion.seconds
+
+/** Toggle to log the raw outbound event and the actual wire JSON of every pushed message. */
+private const val DEBUG = false
 
 class ExchangeServer(
     private val minecraftServer: MinecraftServer,
@@ -174,13 +177,11 @@ class ExchangeServer(
                 }
 
                 val formatted = kotlin.runCatching {
-                    ChatExchangeConfig.receiveMessageFormat
-                        .get()
+                    ChatExchangeConfig.receiveMessageFormat.get()
                         .parseJsonToComponent(source)
                 }.getOrElse {
                     logger.warn("Failed to format message from receive message format. Using default.", it)
-                    ChatExchangeConfig.receiveMessageFormat
-                        .default
+                    ChatExchangeConfig.receiveMessageFormat.default
                         .parseJsonToComponent(source)
                 }.replaceName().append(event.content)
 
@@ -209,6 +210,13 @@ class ExchangeServer(
         }
 
         logger.info("Sending event: $finalEvent")
+
+        // Raw chat record logging, gated behind a hardcoded DEBUG flag.
+        if (DEBUG) {
+            logger.info("[CE-DEBUG/PUSH] raw event (pre-CICode): {}", event)
+            logger.info("[CE-DEBUG/PUSH] wire payload: {}", Json.encodeToString(finalEvent))
+        }
+
         channelMutex.withLock {
             sendChannels.forEach {
                 kotlin.runCatching {
@@ -243,7 +251,7 @@ class ExchangeServer(
     }
 
     companion object {
-        private val logger = LogManager.getLogger(ChatExchange.ID)
+        private val logger = LogManager.getLogger(ChatExchange.MOD_ID)
         private val manager = SelectorManager(Dispatchers.IO)
 
         private var instance: ExchangeServer? = null

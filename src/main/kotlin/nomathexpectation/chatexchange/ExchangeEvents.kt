@@ -1,4 +1,4 @@
-package NoMathExpectation.chatExchange.neoForged
+package nomathexpectation.chatexchange
 
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*

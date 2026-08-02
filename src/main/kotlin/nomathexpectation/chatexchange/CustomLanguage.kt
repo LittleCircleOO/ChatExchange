@@ -1,23 +1,22 @@
-package NoMathExpectation.chatExchange.neoForged
+package nomathexpectation.chatexchange
 
 import net.minecraft.locale.Language
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.FormattedText
 import net.minecraft.network.chat.MutableComponent
-import net.minecraft.network.chat.Style
-import net.minecraft.resources.Identifier
+import net.minecraft.network.chat.FormattedText
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.PackType
+import net.minecraft.server.packs.resources.CloseableResourceManager
 import net.minecraft.server.packs.resources.MultiPackResourceManager
+import net.minecraft.resources.Identifier
 import net.minecraft.util.FormattedCharSequence
 import net.minecraft.util.StringDecomposer
-import net.neoforged.fml.i18n.I18nManager
+import net.minecraft.network.chat.Style
 import org.apache.logging.log4j.LogManager
 import java.util.*
 
 class CustomLanguage(
     private val textMap: Map<String, String>,
-    private val componentMap: Map<String, Component>,
     private val defaultRightToLeft: Boolean = false,
 ) : Language() {
     override fun getOrDefault(key: String, defaultValue: String) = textMap.getOrDefault(key, defaultValue)
@@ -26,64 +25,55 @@ class CustomLanguage(
 
     override fun isDefaultRightToLeft() = defaultRightToLeft
 
-    override fun getVisualOrder(text: FormattedText) = FormattedCharSequence {
+    override fun getVisualOrder(text: FormattedText) = FormattedCharSequence { sink ->
         text.visit(
             { style, string ->
-                if (StringDecomposer.iterateFormatted(
-                        string,
-                        style,
-                        it
-                    )
-                ) Optional.empty() else FormattedText.STOP_ITERATION
+                if (StringDecomposer.iterateFormatted(string, style, sink)) Optional.empty() else FormattedText.STOP_ITERATION
             },
             Style.EMPTY
         ).isPresent
     }
-
-    override fun getLanguageData() = textMap
-
-    override fun getComponent(key: String) = componentMap[key]
 }
 
-private val logger = LogManager.getLogger(ChatExchange.ID)
+private val logger = LogManager.getLogger(ChatExchange.MOD_ID)
 
 fun languageOf(lang: String, server: MinecraftServer): Language {
     val textMap = mutableMapOf<String, String>()
-    val componentMap = mutableMapOf<String, Component>()
 
     fun loadFrom(path: String) {
         CustomLanguage::class.java.getResourceAsStream(path)?.use {
-            Language.loadFromJson(it, textMap::put, componentMap::put)
+            Language.loadFromJson(it, textMap::put)
         } ?: logger.warn("Unable to load language file $path")
     }
 
-    loadFrom("/assets/chatexchange/mclang/$lang.json") // vanilla
-    loadFrom("/assets/chatexchange/fmllang/$lang.json") // fml
-    loadFrom("/assets/chatexchange/neolang/$lang.json") // neoforge
+    // vanilla strings bundled with the mod (for resolving translatable components in a chosen language)
+    loadFrom("/assets/chatexchange/mclang/$lang.json")
 
-    textMap += I18nManager.loadTranslations(lang) // i18n
-
-    // mods
+    // other mods' language files
     val langFile = String.format(Locale.ROOT, "lang/%s.json", lang)
-    val resourceManager = server.serverResources.resourceManager
-    val clientResources = MultiPackResourceManager(PackType.CLIENT_RESOURCES, resourceManager.listPacks().toList())
-    val loaded = clientResources.namespaces.map { namespace ->
-        runCatching {
-            val langResource = Identifier.fromNamespaceAndPath(namespace, langFile)
-            clientResources.getResourceStack(langResource).forEach { resource ->
-                resource.open().use {
-                    Language.loadFromJson(it, textMap::put, componentMap::put)
+    val serverResourceManager = server.resourceManager as? CloseableResourceManager
+    if (serverResourceManager != null) {
+        val clientResources = MultiPackResourceManager(PackType.CLIENT_RESOURCES, serverResourceManager.listPacks().toList())
+        val loaded = clientResources.namespaces.map { namespace ->
+            runCatching {
+                val langResource = Identifier.fromNamespaceAndPath(namespace, langFile)
+                clientResources.getResourceStack(langResource).forEach { resource ->
+                    resource.open().use {
+                        Language.loadFromJson(it, textMap::put)
+                    }
                 }
+            }.onFailure {
+                logger.warn("Skipped language file: {}:{}", namespace, langFile, it)
+                return@map 0
             }
-        }.onFailure {
-            logger.warn("Skipped language file: {}:{}", namespace, langFile, it)
-            return@map 0
-        }
-        1
-    }.sum()
-    logger.debug("Loaded {} mod language files for {}", loaded, lang)
+            1
+        }.sum()
+        logger.debug("Loaded {} mod language files for {}", loaded, lang)
+    } else {
+        logger.warn("Server resource manager is not a CloseableResourceManager; skipped mod language files for {}", lang)
+    }
 
-    return CustomLanguage(textMap, componentMap)
+    return CustomLanguage(textMap)
 }
 
 fun languageOfOrDefault(lang: String, server: MinecraftServer): Language = runCatching {

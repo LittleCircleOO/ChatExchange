@@ -1,17 +1,9 @@
-package NoMathExpectation.chatExchange.neoForged
+package nomathexpectation.chatexchange
 
-import net.neoforged.api.distmarker.Dist
-import net.neoforged.bus.api.SubscribeEvent
-import net.neoforged.fml.common.EventBusSubscriber
+import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry
 import net.neoforged.fml.config.ModConfig
-import net.neoforged.fml.event.config.ModConfigEvent
 import net.neoforged.neoforge.common.ModConfigSpec
-import thedarkcolour.kotlinforforge.neoforge.forge.LOADING_CONTEXT
-import thedarkcolour.kotlinforforge.neoforge.forge.runWhenOn
 
-@EventBusSubscriber(
-    modid = ChatExchange.ID,
-)
 object ChatExchangeConfig {
     private val builder = ModConfigSpec.Builder()
 
@@ -41,9 +33,9 @@ object ChatExchangeConfig {
         .worldRestart()
         .defineInRange("maxConnectionsPerAddress", 5, 1, Int.MAX_VALUE)
 
-    val mixinMode: ModConfigSpec.BooleanValue = builder.comment("Whether to use mixin instead of event to listen to server chats.", "If the exchange server isn't sending server chat, try turn this on.")
+    val mixinMode: ModConfigSpec.BooleanValue = builder.comment("Legacy: on Fabric the chat Mixin is always used (no ServerChatEvent exists). Kept for config-file compatibility only.")
         .translation("chatexchange.config.mixinMode")
-        .define("mixinMode", false)
+        .define("mixinMode", true)
 
     val ignoreBotRegex: ModConfigSpec.ConfigValue<String> = builder.comment("The regex to match and ignore the bot players.", "Leave blank to disable.")
         .translation("chatexchange.config.ignoreBotRegex")
@@ -108,17 +100,9 @@ object ChatExchangeConfig {
             error("Config is already registered!")
         }
 
-        val modContainer = LOADING_CONTEXT.activeContainer
-        modContainer.registerConfig(ModConfig.Type.COMMON, spec)
-        runWhenOn(Dist.CLIENT) {
-            registerOnClient()
-        }
+        ConfigRegistry.INSTANCE.register(ChatExchange.MOD_ID, ModConfig.Type.COMMON, spec)
 
         registered = true
-    }
-
-    @SubscribeEvent
-    fun onConfig(event: ModConfigEvent) {
     }
 
     fun checkIgnoreBot(name: String): Boolean {
