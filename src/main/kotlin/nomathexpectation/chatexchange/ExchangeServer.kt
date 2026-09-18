@@ -264,6 +264,3 @@ class ExchangeServer(
         fun componentToString(component: Component): String = instance?.componentToString(component) ?: component.string
     }
 }
-
-fun String.toExchangeServerTranslatedLiteral(vararg args: Any): Component =
-    toTranslatedLiteral(*args, language = ExchangeServer.language)

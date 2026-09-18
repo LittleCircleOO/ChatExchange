@@ -29,7 +29,7 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
                             "Unable to resolve component from command broadcast format. Using default.",
                             it
                         )
-                        context.source.sendSystemMessage("chatexchange.const.exception".toExchangeServerTranslatedLiteral())
+                        context.source.sendSystemMessage("chatexchange.const.exception".toTranslatableComponent())
                         Formatting.formatBroadcast(format.default, context.source, message)
                     }
 
@@ -48,7 +48,7 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
                     (if (this) "chatexchange.const.enabled" else "chatexchange.const.disabled").toTranslatableComponent()
 
                 context.source.sendSystemMessage(
-                    "chatexchange.command.chatexchange.status".toExchangeServerTranslatedLiteral(
+                    "chatexchange.command.chatexchange.status".toTranslatableComponent(
                         ChatExchangeConfig.chat.get().toProperLiteral(),
                         ChatExchangeConfig.joinLeave.get().toProperLiteral(),
                         ChatExchangeConfig.death.get().toProperLiteral(),
@@ -62,7 +62,7 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
             Commands.literal("broadcastme").then(
                 Commands.argument("toggle", BoolArgumentType.bool()).executes { context ->
                     val player = context.source.player ?: kotlin.run {
-                        context.source.sendSystemMessage("chatexchange.const.onlyPlayer".toExchangeServerTranslatedLiteral())
+                        context.source.sendSystemMessage("chatexchange.const.onlyPlayer".toTranslatableComponent())
                         return@executes 0
                     }
 
@@ -70,32 +70,32 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
                     val toggle = BoolArgumentType.getBool(context, "toggle")
                     if (toggle) {
                         data.removeIgnoredPlayer(player.uuid)
-                        player.sendSystemMessage("chatexchange.command.chatexchange.broadcastme.on".toExchangeServerTranslatedLiteral())
+                        player.sendSystemMessage("chatexchange.command.chatexchange.broadcastme.on".toTranslatableComponent())
                     } else {
                         data.addIgnoredPlayer(player.uuid)
-                        player.sendSystemMessage("chatexchange.command.chatexchange.broadcastme.off".toExchangeServerTranslatedLiteral())
+                        player.sendSystemMessage("chatexchange.command.chatexchange.broadcastme.off".toTranslatableComponent())
                     }
 
                     1
                 }
             ).executes { context ->
                 val player = context.source.player ?: kotlin.run {
-                    context.source.sendSystemMessage("chatexchange.const.onlyPlayer".toExchangeServerTranslatedLiteral())
+                    context.source.sendSystemMessage("chatexchange.const.onlyPlayer".toTranslatableComponent())
                     return@executes 0
                 }
 
                 val data = player.level().server.chatExchangeData
                 if (data.isIgnoredPlayer(player.uuid)) {
-                    player.sendSystemMessage("chatexchange.command.chatexchange.broadcastme.isoff".toExchangeServerTranslatedLiteral())
+                    player.sendSystemMessage("chatexchange.command.chatexchange.broadcastme.isoff".toTranslatableComponent())
                 } else {
-                    player.sendSystemMessage("chatexchange.command.chatexchange.broadcastme.ison".toExchangeServerTranslatedLiteral())
+                    player.sendSystemMessage("chatexchange.command.chatexchange.broadcastme.ison".toTranslatableComponent())
                 }
 
                 1
             }
         ).executes { context ->
             context.source.sendSystemMessage(
-                "chatexchange.command.chatexchange.description".toExchangeServerTranslatedLiteral()
+                "chatexchange.command.chatexchange.description".toTranslatableComponent()
             )
             1
         }

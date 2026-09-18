@@ -62,6 +62,11 @@ dependencies {
 
 	// TextPlaceholderAPI: Simplified Text Format + placeholders for chat formatting. jij-bundled.
 	include(implementation("eu.pb4:placeholder-api:3.1.0-beta.1+26.2")!!)
+
+	// Server Translations API: resolves translatable components per player's client language
+	// at packet serialization (translations load from data/chatexchange/lang/, mirrored below).
+	// jij-bundled. https://maven.nucleoid.xyz/
+	include(implementation("xyz.nucleoid:server-translations-api:${providers.gradleProperty("server_translations_version").get()}")!!)
 }
 
 tasks.processResources {
@@ -70,6 +75,13 @@ tasks.processResources {
 
 	filesMatching("fabric.mod.json") {
 		expand("version" to version)
+	}
+
+	// Mirror the lang files into data/chatexchange/lang/ so server-translations-api
+	// picks them up as datapack translations (its autoload convention), while the
+	// assets/ copy keeps serving the client-side (FCAP config screen) keys.
+	from("src/main/resources/assets/chatexchange/lang") {
+		into("data/chatexchange/lang")
 	}
 }
 

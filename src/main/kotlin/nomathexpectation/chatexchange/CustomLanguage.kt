@@ -91,10 +91,4 @@ fun Component.getStringWithLanguage(language: Language): String {
     return result
 }
 
-fun Component.toLiteral(language: Language = Language.getInstance()): Component =
-    Component.literal(getStringWithLanguage(language))
-
 fun String.toTranslatableComponent(vararg args: Any): MutableComponent = Component.translatable(this, *args)
-
-fun String.toTranslatedLiteral(vararg args: Any, language: Language = Language.getInstance()): Component =
-    Component.translatable(this, *args).toLiteral(language)
