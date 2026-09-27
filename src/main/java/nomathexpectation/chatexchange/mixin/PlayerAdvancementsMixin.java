@@ -1,7 +1,9 @@
 package nomathexpectation.chatexchange.mixin;
 
 import net.minecraft.advancements.Advancement;
+//? if >= 1.21 {
 import net.minecraft.advancements.AdvancementHolder;
+//?}
 import net.minecraft.advancements.DisplayInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.PlayerAdvancements;
@@ -24,7 +26,13 @@ public abstract class PlayerAdvancementsMixin {
     private ServerPlayer player;
 
     @Inject(method = "award", at = @At("RETURN"))
-    private void chatExchange$onAdvancementAward(AdvancementHolder holder, String criterion, CallbackInfoReturnable<Boolean> cir) {
+    private void chatExchange$onAdvancementAward(
+            //? if >= 1.21 {
+            AdvancementHolder holder, String criterion,
+            //?} else {
+            /*Advancement advancement, String criterion,
+            *///?}
+            CallbackInfoReturnable<Boolean> cir) {
         // award() returns true when a criterion is newly granted (progress.grantProgress succeeded).
         // Combined with the advancement now being complete (isDone()), that means it was just earned:
         // an already-complete advancement cannot grant a brand-new criterion, so result==true && done == newly completed.
@@ -32,22 +40,44 @@ public abstract class PlayerAdvancementsMixin {
         if (!cir.getReturnValueZ()) {
             return;
         }
+        //? if >= 1.21 {
         if (!((PlayerAdvancements) (Object) this).getOrStartProgress(holder).isDone()) {
             return;
         }
+        //?} else {
+        /*if (!((PlayerAdvancements) (Object) this).getOrStartProgress(advancement).isDone()) {
+            return;
+        }
+        *///?}
         if (!ChatExchangeConfig.INSTANCE.getAdvancement().get()) {
             return;
         }
+        //? if >= 1.21 {
         Advancement advancement = holder.value();
+        //?}
+        //? if >= 1.20.2 {
         Optional<DisplayInfo> displayOpt = advancement.display();
+        //?} else {
+        /*Optional<DisplayInfo> displayOpt = Optional.ofNullable(advancement.getDisplay());
+        *///?}
+        //? if >= 26.3 {
+        /*if (displayOpt.isEmpty() || !displayOpt.get().announceToChat()) {
+            return;
+        }
+        *///?} else {
         if (displayOpt.isEmpty() || !displayOpt.get().shouldAnnounceChat()) {
             return;
         }
+        //?}
         var name = ExchangeServer.Companion.componentToString(player.getName());
         if (ChatExchangeConfig.INSTANCE.checkIgnoreBot(name)) {
             return;
         }
+        //? if >= 26.3 {
+        /*Component title = displayOpt.get().title();
+        *///?} else {
         Component title = displayOpt.get().getTitle();
+        //?}
         var advancementName = ExchangeServer.Companion.componentToString(title);
         ExchangeServer.Companion.sendEvent(new PlayerAdvancementEvent(name, advancementName));
     }

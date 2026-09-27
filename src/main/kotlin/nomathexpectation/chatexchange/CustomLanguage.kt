@@ -9,7 +9,11 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.PackType
 import net.minecraft.server.packs.resources.CloseableResourceManager
 import net.minecraft.server.packs.resources.MultiPackResourceManager
+//? if >= 26.1 {
 import net.minecraft.resources.Identifier
+//?} else {
+/*import net.minecraft.resources.ResourceLocation
+*///?}
 import net.minecraft.util.FormattedCharSequence
 import net.minecraft.util.StringDecomposer
 import net.minecraft.network.chat.Style
@@ -67,7 +71,15 @@ fun languageOf(lang: String, server: MinecraftServer): Language {
         val clientResources = MultiPackResourceManager(PackType.CLIENT_RESOURCES, serverResourceManager.listPacks().toList())
         val loaded = clientResources.namespaces.map { namespace ->
             runCatching {
+                //? if >= 26.1 {
                 val langResource = Identifier.fromNamespaceAndPath(namespace, langFile)
+                //?} else {
+                /*//? if >= 1.21 {
+                val langResource = ResourceLocation.fromNamespaceAndPath(namespace, langFile)
+                //?} else {
+                /*val langResource = ResourceLocation(namespace, langFile)
+                *///?}
+                *///?}
                 clientResources.getResourceStack(langResource).forEach { resource ->
                     resource.open().use {
                         Language.loadFromJson(it, textMap::put)

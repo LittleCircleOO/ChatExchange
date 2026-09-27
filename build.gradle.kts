@@ -1,22 +1,27 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-	id("net.fabricmc.fabric-loom")
-	`maven-publish`
-	id("org.jetbrains.kotlin.jvm") version "2.4.10"
+	id("dev.kikugie.loom-back-compat")
+	kotlin("jvm") version "2.4.10"
 	kotlin("plugin.serialization") version "2.4.10"
+	`maven-publish`
 }
 
-version = providers.gradleProperty("mod_version").get()
-group = providers.gradleProperty("maven_group").get()
+version = "${property("mod.version")}+${sc.current.version}"
+group = property("mod.group") as String
+base.archivesName = property("mod.id") as String
 
-base {
-	archivesName = "chatexchange"
+// Java/Kotlin bytecode target per MC generation (matches what the loader requires).
+// Compiled with the host JDK via --release cross-compilation; no toolchain provisioning needed.
+val requiredJava: Int = when {
+	sc.current.parsed >= "26.1" -> 25
+	sc.current.parsed >= "1.20.5" -> 21
+	else -> 17
 }
 
+// Loom adds the essential maven repositories (Fabric, Mojang, ...) automatically.
+// Custom repositories below are only for third-party mod/lib dependencies.
 repositories {
-	// Loom adds the essential maven repositories (Fabric, Mojang, ...) automatically.
-	// Custom repositories below are only for third-party mod/lib dependencies.
 	exclusiveContent {
 		forRepository {
 			maven {
@@ -39,73 +44,87 @@ repositories {
 }
 
 dependencies {
-	minecraft("com.mojang:minecraft:${providers.gradleProperty("minecraft_version").get()}")
-	// Loom 1.17 auto-applies Mojang official mappings for recent MC (matches our mojmap code),
-	// and uses plain `implementation`/`api` rather than the legacy `modImplementation`/`modApi` configs.
+	minecraft("com.mojang:minecraft:${sc.current.version}")
+	// Obfuscated MC (<= 1.21.x): applies official Mojang mappings.
+	// Non-obfuscated MC (26.x): no-op; loom-back-compat picks the right loom variant per node.
+	loomx.applyMojangMappings()
 
-	implementation("net.fabricmc:fabric-loader:${providers.gradleProperty("loader_version").get()}")
-	implementation("net.fabricmc.fabric-api:fabric-api:${providers.gradleProperty("fabric_api_version").get()}")
-	implementation("net.fabricmc:fabric-language-kotlin:${providers.gradleProperty("fabric_kotlin_version").get()}")
+	// modImplementation works on both loom variants (loom-back-compat aliases the
+	// unobfuscated configurations), so all mod deps use it uniformly.
+	modImplementation("net.fabricmc:fabric-loader:${property("deps.fabric_loader")}")
+	modImplementation("net.fabricmc.fabric-api:fabric-api:" + sc.properties["deps.fabric_api"] as String)
 
-	// ktor: ship alongside the mod via Loom `include` (nested jars).
-	// Kotlin stdlib / kotlinx.coroutines / kotlinx.serialization are provided at runtime by fabric-language-kotlin.
+	// fabric-language-kotlin provides Kotlin stdlib + kotlinx (coroutines/serialization) at runtime.
+	modImplementation("net.fabricmc:fabric-language-kotlin:${property("deps.fabric_kotlin")}")
+
+	// TextPlaceholderAPI: Simplified Text Format + placeholders for chat formatting. jij-bundled.
+	include(modImplementation(sc.properties["deps.placeholder_api"] as String)!!)
+
+	// Server Translations API: per-player client-language resolution of command feedback. jij-bundled.
+	// Translations load from data/chatexchange/lang/ (mirrored from assets/ at processResources).
+	include(modImplementation(sc.properties["deps.server_translations"] as String)!!)
+
+	// Config system: ForgeConfigAPIPort (per-version builds; API shape differs, see ChatExchangeConfig.kt).
+	modImplementation(sc.properties["deps.fcap"] as String)
+
+	// ChatImageCode: compile-only; provided at runtime by the optional chatimage mod.
+	compileOnly(sc.properties["deps.chatimage_code"] as String)
+
+	// ktor: pure-JVM libs, shipped as nested jars.
 	include(implementation("io.ktor:ktor-io:2.3.13")!!)
 	include(implementation("io.ktor:ktor-utils:2.3.13")!!)
 	include(implementation("io.ktor:ktor-network:2.3.13")!!)
-
-	// Config system: ForgeConfigAPIPort (drop-in NeoForge ModConfigSpec/ModConfig for Fabric).
-	// maven.modrinth: forge-config-api-port (id ohNO6lps) v26.2.1 fabric (version id rSd3GiG8).
-	implementation("maven.modrinth:ohNO6lps:rSd3GiG8")
-
-	// ChatImageCode: compile-only; provided at runtime by the optional ChatImage mod.
-	compileOnly("io.github.kituin:ChatImageCode:0.12.1")
-
-	// TextPlaceholderAPI: Simplified Text Format + placeholders for chat formatting. jij-bundled.
-	include(implementation("eu.pb4:placeholder-api:3.1.0-beta.1+26.2")!!)
-
-	// Server Translations API: resolves translatable components per player's client language
-	// at packet serialization (translations load from data/chatexchange/lang/, mirrored below).
-	// jij-bundled. https://maven.nucleoid.xyz/
-	include(implementation("xyz.nucleoid:server-translations-api:${providers.gradleProperty("server_translations_version").get()}")!!)
 }
 
-tasks.processResources {
-	val version = version
-	inputs.property("version", version)
-
-	filesMatching("fabric.mod.json") {
-		expand("version" to version)
-	}
-
-	// Mirror the lang files into data/chatexchange/lang/ so server-translations-api
-	// picks them up as datapack translations (its autoload convention), while the
-	// assets/ copy keeps serving the client-side (FCAP config screen) keys.
-	from("src/main/resources/assets/chatexchange/lang") {
-		into("data/chatexchange/lang")
-	}
-}
-
-tasks.withType<JavaCompile>().configureEach {
-	options.release = 25
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.toVersion(requiredJava)
+	targetCompatibility = JavaVersion.toVersion(requiredJava)
 }
 
 kotlin {
 	compilerOptions {
-		jvmTarget = JvmTarget.JVM_25
+		jvmTarget.set(JvmTarget.fromTarget(requiredJava.toString()))
 	}
 }
 
-java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
-	withSourcesJar()
-
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
+tasks.withType<JavaCompile>().configureEach {
+	options.release = requiredJava
 }
 
-// configure the maven publication
+tasks.processResources {
+	val props = buildMap {
+		put("version", project.version.toString())
+		put("minecraft", sc.properties["mod.mc_compat"] as String)
+		put("java", requiredJava.toString())
+	}
+	inputs.properties(props)
+
+	filesMatching("fabric.mod.json") {
+		expand(props)
+	}
+
+	filesMatching("*.mixins.json") {
+		expand("java" to "JAVA_${requiredJava}")
+	}
+
+	// Mirror the lang files into data/chatexchange/lang/ so server-translations-api
+	// picks them up as datapack translations (its autoload convention), while the
+	// assets/ copy keeps serving the client-side (config screen) keys.
+	// NOTE: node projects live in versions/<v>/, so resolve against the root project dir.
+	from(rootProject.layout.projectDirectory.dir("src/main/resources/assets/chatexchange/lang")) {
+		into("data/chatexchange/lang")
+	}
+}
+
+tasks.register<Copy>("buildAndCollect") {
+	group = "build"
+	description = "Builds the mod jar (and sources) and copies them to rootProject/build/libs-collect/."
+
+	from(loomx.modJar.flatMap { it.archiveFile }, loomx.modSourcesJar.flatMap { it.archiveFile })
+	into(rootProject.layout.buildDirectory.file("libs-collect/${project.version}"))
+}
+
 publishing {
 	publications {
 		register<MavenPublication>("mavenJava") {
@@ -115,7 +134,7 @@ publishing {
 
 	repositories {
 		maven {
-			url = project.projectDir.resolve("repo").toURI()
+			url = rootProject.projectDir.resolve("repo").toURI()
 		}
 	}
 }

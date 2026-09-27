@@ -2,7 +2,9 @@ package nomathexpectation.chatexchange.mixin;
 
 import net.minecraft.network.Connection;
 import net.minecraft.server.level.ServerPlayer;
+//? if >= 1.20.2 {
 import net.minecraft.server.network.CommonListenerCookie;
+//?}
 import net.minecraft.server.players.PlayerList;
 import nomathexpectation.chatexchange.ChatExchangeConfig;
 import nomathexpectation.chatexchange.ExchangeServer;
@@ -17,10 +19,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class PlayerListMixin {
 
     @Inject(
-            method = "placeNewPlayer(Lnet/minecraft/network/Connection;Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/server/network/CommonListenerCookie;)V",
+            method = "placeNewPlayer",
             at = @At("RETURN")
     )
-    private void chatExchange$onPlaceNewPlayer(Connection connection, ServerPlayer player, CommonListenerCookie cookie, CallbackInfo ci) {
+    private void chatExchange$onPlaceNewPlayer(Connection connection, ServerPlayer player
+            //? if >= 1.20.2 {
+            , CommonListenerCookie cookie
+            //?}
+            , CallbackInfo ci) {
         if (!ChatExchangeConfig.INSTANCE.getJoinLeave().get()) {
             return;
         }

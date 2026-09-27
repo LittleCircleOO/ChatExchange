@@ -1,23 +1,32 @@
 # AGENTS.md
 
-ChatExchange — a **server-side Fabric mod** (MC 26.2) that runs a TCP socket server (`ktor-network`) broadcasting server chat/join/leave/death/advancement events as JSON to external clients, and injects received messages back as system chat. Migrated from NeoForge; see `doc/MIGRATION_TO_FABRIC.md` for the full record.
+ChatExchange — a **server-side Fabric mod** that runs a TCP socket server (`ktor-network`) broadcasting server chat/join/leave/death/advancement events as JSON to external clients, and injects received messages back as system chat. Migrated from NeoForge; see `doc/MIGRATION_TO_FABRIC.md` for the full record.
 
-## Build & run
-- Build: `./gradlew build` (Windows: `.\gradlew.bat build`). Output: `build/libs/chatexchange-<ver>.jar` (production, intermediary-remapped). No separate test/lint/typecheck tasks — `build` is the single verification target.
-- Smoke test a dev server: `./gradlew runServer`. Connect a client and watch `run/logs/latest.log`.
-- **Java 25 host toolchain required.** There is no foojay auto-provisioning; the host JDK must be 25+ (CI uses `microsoft` JDK 25). `options.release = 25`; no explicit Gradle `toolchain {}` spec.
+## Build & run (stonecutter multi-version)
+- Version nodes: **1.20.1, 1.21.1, 26.1.2, 26.2, 26.3** (declared in `settings.gradle.kts`; active = `stonecutter.gradle.kts`). Per-node deps live in `stonecutter.properties.toml`.
+- Build ALL five: `.\gradlew.bat build :1.20.1:build :1.21.1:build :26.1.2:build :26.2:build :26.3:build`. Plain `build` only builds the **active** version at the root. Jars land in `versions/<v>/build/libs/`. No test/lint tasks — `build` is the verification target.
+- **Java 25 host toolchain required** (no foojay). All versions cross-compile from JDK 25 via `--release` 17/21/25 per generation; no toolchain spec.
+- Gradle wrapper 9.8. Loom comes from `dev.kikugie.loom-back-compat` (`loomx.loom_version = 1.18-SNAPSHOT`): nodes ≥26 use the non-obf loom, ≤1.21.x use `fabric-loom-remap` + `loomx.applyMojangMappings()`. `modImplementation` works uniformly on both.
+- Kotlin plugin (2.4.10) must be ≤ the Kotlin bundled by `fabric-language-kotlin` (1.14.1+kotlin.2.4.20).
 
-## Loom 1.17 quirks (do NOT follow older Fabric conventions)
-- Use plain `implementation` / `api` for **all** deps including mods — `modImplementation` / `modApi` are **removed** (cause "Configuration not found").
-- Do **not** add `mappings(loom.officialMojangMappings())` — mappings are auto-applied; explicit ones error with "Cannot use Mojang mappings in a non-obfuscated environment". Source is written against Mojang (mojmap) names.
-- No standalone `*.refmap.json` is emitted; Loom bakes intermediary mappings into the Mixin bytecode at `remapJar`. A `mixins.json` without a `refmap` field is correct.
-- Kotlin plugin version must be ≤ the Kotlin bundled by `fabric-language-kotlin` (currently 2.4.10).
+### Stonecutter source rules (critical)
+- The **active node compiles raw `src/main` unpreprocessed** — the shared source must stay valid for the ACTIVE version (26.2). Therefore every conditional's branch that is *inactive for 26.2* (all `else` branches, `>= 26.3` if-parts) must be written pre-wrapped: `/*code *///?}`. Branches active for 26.2 stay raw. Docs: stonecutter.kikugie.dev/wiki/v2 (supports `<`, `elif`, `&&`/`||`).
+- Java files cannot nest block comments — keep `//?` conditionals in Java single-level (no nested if-in-else). Kotlin nesting is fine (block comments nest).
+- Whole-file overrides: a file at `versions/<v>/src/main/...` **replaces** the shared one for that node. Used for `ChatExchangeData.kt` (SavedData model differs too much: 26.x `SavedDataType`+codec / 1.20.2+ `SavedData.Factory` / 1.20.1 load-create functions).
+- Loom bakes intermediary mappings into mixin bytecode at `remapJar` (no refmap file, all versions). A `mixins.json` without `refmap` is correct.
+
+### Per-version API differences encoded in the source
+- `PlayerList#placeNewPlayer`: 2 args pre-1.20.2, 3 args (CommonListenerCookie) since.
+- `PlayerAdvancements#award`: `Advancement` pre-1.21, `AdvancementHolder` since. `Advancement.getDisplay()` → `display()` (1.20.2, returns Optional). `DisplayInfo.getTitle()/shouldAnnounceChat()` → `title()/announceToChat()` (26.3 record).
+- ID class: `ResourceLocation` ctor (1.20.1) → `fromNamespaceAndPath` (1.21) → `Identifier` (26.x).
+- FCAP 3 package eras: v5 `ConfigRegistry` + neoforge (26.x) / `fabric.api.neoforge.v4.NeoForgeConfigRegistry` + neoforge (1.20.2–1.21.x) / `api.config.v2.ForgeConfigRegistry` + forge alias (1.20.1, aliased `ForgeConfigSpec as ModConfigSpec`).
+- placeholder-api: 3.x builder + `serverPlaceholders()` + `ServerPlaceholderContext` (26.x) / 2.4.x builder + `globalPlaceholders()` + `PlaceholderContext.of(source)` (1.20.2–1.21.x) / **2.1.4 has no builder or Simplified Text Format** — on 1.20.1 `Formatting` pre-substitutes `${...}` and applies quick-text only (STF tags and `%player:*%` unavailable); `Placeholders.registerServer` is 3.x-only (2.x uses `register`).
 
 ## Dependencies
 - `fabric-api`, `fabric-loader`, `fabric-language-kotlin` (provides Kotlin stdlib + kotlinx.coroutines/serialization at runtime — do not bundle these).
 - **ktor** (`ktor-io`/`ktor-utils`/`ktor-network`) shipped via `include(implementation(...))` → nested jars under `META-INF/jars/`.
-- **ForgeConfigAPIPort (FCAP)** is the config backend, pulled from **Modrinth maven** (`exclusiveContent` + `includeGroup("maven.modrinth")`), coordinate `maven.modrinth:ohNO6lps:rSd3GiG8`. The FCAP GitHub/raw-GitHub maven cannot be fetched by Gradle; do not switch back to it.
-- `ChatImageCode` is `compileOnly` (provided by the optional `chatimage` mod at runtime).
+- **ForgeConfigAPIPort (FCAP)** is the config backend, pulled from **Modrinth maven** (`exclusiveContent` + `includeGroup("maven.modrinth")`); per-MC version ids in `stonecutter.properties.toml`. The FCAP GitHub/raw-GitHub maven cannot be fetched by Gradle; do not switch back to it.
+- `ChatImageCode` is `compileOnly` (provided by the optional `chatimage` mod at runtime; one version serves all MC versions).
 
 ## Mixin authoring rules (hard-won)
 - Mixins live in `src/main/java/nomathexpectation/chatexchange/mixin/` (Java source set, **not** `src/main/kotlin`), declared in `src/main/resources/chatexchange.mixins.json`.

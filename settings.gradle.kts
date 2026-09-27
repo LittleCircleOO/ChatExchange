@@ -1,17 +1,23 @@
 pluginManagement {
-	repositories {
-		maven {
-			name = "Fabric"
-			url = uri("https://maven.fabricmc.net/")
-		}
-		mavenCentral()
-		gradlePluginPortal()
-	}
-
-	plugins {
-		id("net.fabricmc.fabric-loom") version providers.gradleProperty("loom_version")
-	}
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        maven("https://maven.fabricmc.net/")
+        maven("https://maven.kikugie.dev/releases") { name = "KikuGie Releases" }
+        maven("https://maven.kikugie.dev/snapshots") { name = "KikuGie Snapshots" }
+    }
 }
 
-// Should match your modid
+plugins {
+    id("dev.kikugie.stonecutter") version "0.9.8"
+    id("dev.kikugie.loom-back-compat") version "0.4.2"
+}
+
+stonecutter {
+    create(rootProject) {
+        versions("1.20.1", "1.21.1", "26.1.2", "26.2", "26.3")
+        vcsVersion = "26.2"
+    }
+}
+
 rootProject.name = "chatexchange"

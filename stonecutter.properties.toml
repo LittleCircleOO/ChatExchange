@@ -1,0 +1,55 @@
+mod.id = "chatexchange"
+mod.name = "ChatExchange"
+mod.group = "nomathexpectation.chatexchange"
+mod.version = "0.2"
+
+deps.fabric_loader = "0.19.5"
+deps.fabric_kotlin = "1.14.1+kotlin.2.4.20"
+loomx.loom_version = "1.18-SNAPSHOT"
+
+# ForgeConfigAPIPort: Modrinth maven (project ohNO6lps), fabric builds per MC version.
+#   1.20.1 -> v8.0.3   (forge-flavored: net.minecraftforge ForgeConfigSpec + api.config.v2)
+#   1.21.1 -> v21.1.6  (neoforge-flavored: net.neoforged ModConfigSpec + fabric.api.neoforge.v4)
+#   26.x   -> 26.x.y   (fabric.api.v5)
+# Server Translations API versions: https://github.com/NucleoidMC/Server-Translations/releases
+# Placeholder API / ChatImageCode versions: https://maven.kituin.fun/releases (placeholder-api also on maven.nucleoid.xyz)
+
+["1.20.1"]
+mod.mc_compat = "1.20.1"
+deps.fabric_api = "0.92.12+1.20.1"
+deps.fcap = "maven.modrinth:ohNO6lps:HvR3IdRE"
+deps.placeholder_api = "eu.pb4:placeholder-api:2.1.4+1.20.1"
+deps.server_translations = "xyz.nucleoid:server-translations-api:2.0.0+1.20"
+deps.chatimage_code = "io.github.kituin:ChatImageCode:0.12.1"
+
+["1.21.1"]
+mod.mc_compat = "1.21.1"
+deps.fabric_api = "0.116.17+1.21.1"
+deps.fcap = "maven.modrinth:ohNO6lps:N5qzq0XV"
+deps.placeholder_api = "eu.pb4:placeholder-api:2.4.2+1.21"
+deps.server_translations = "xyz.nucleoid:server-translations-api:2.3.1+1.21-pre2"
+deps.chatimage_code = "io.github.kituin:ChatImageCode:0.12.1"
+
+["26.1.2"]
+mod.mc_compat = "26.1.2"
+deps.fabric_api = "0.155.3+26.1.2"
+deps.fcap = "maven.modrinth:ohNO6lps:jUe0ucoE"
+deps.placeholder_api = "eu.pb4:placeholder-api:3.0.0+26.1"
+deps.server_translations = "xyz.nucleoid:server-translations-api:3.0.3+26.1"
+deps.chatimage_code = "io.github.kituin:ChatImageCode:0.12.1"
+
+["26.2"]
+mod.mc_compat = "26.2"
+deps.fabric_api = "0.161.0+26.2"
+deps.fcap = "maven.modrinth:ohNO6lps:rSd3GiG8"
+deps.placeholder_api = "eu.pb4:placeholder-api:3.1.0-beta.1+26.2"
+deps.server_translations = "xyz.nucleoid:server-translations-api:3.1.0+26.2"
+deps.chatimage_code = "io.github.kituin:ChatImageCode:0.12.1"
+
+["26.3"]
+mod.mc_compat = "26.3"
+deps.fabric_api = "0.161.0+26.3"
+deps.fcap = "maven.modrinth:ohNO6lps:JpKvrr9J"
+deps.placeholder_api = "eu.pb4:placeholder-api:3.2.0+26.3"
+deps.server_translations = "xyz.nucleoid:server-translations-api:3.2.0+26.3"
+deps.chatimage_code = "io.github.kituin:ChatImageCode:0.12.1"

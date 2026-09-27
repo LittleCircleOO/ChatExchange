@@ -1,8 +1,25 @@
 package nomathexpectation.chatexchange
 
+// ForgeConfigAPIPort vendors the config spec at different packages per MC generation:
+//   26.x        -> fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry + net.neoforged.neoforge.common.ModConfigSpec
+//   1.20.2-1.21.x -> ...fabric.api.neoforge.v4.NeoForgeConfigRegistry + net.neoforged.neoforge.common.ModConfigSpec
+//   1.20.1      -> ...api.config.v2.ForgeConfigRegistry + net.minecraftforge.common.ForgeConfigSpec (aliased below)
+// The Kotlin import alias lets the rest of the file use `ModConfigSpec` uniformly.
+//? if >= 26.1 {
 import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry
 import net.neoforged.fml.config.ModConfig
 import net.neoforged.neoforge.common.ModConfigSpec
+//?} else {
+/*//? if >= 1.20.2 {
+import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeConfigRegistry
+import net.neoforged.fml.config.ModConfig
+import net.neoforged.neoforge.common.ModConfigSpec
+//?} else {
+/*import fuzs.forgeconfigapiport.api.config.v2.ForgeConfigRegistry
+import net.minecraftforge.fml.config.ModConfig
+import net.minecraftforge.common.ForgeConfigSpec as ModConfigSpec
+*///?}
+*///?}
 
 object ChatExchangeConfig {
     private val builder = ModConfigSpec.Builder()
@@ -82,7 +99,15 @@ object ChatExchangeConfig {
             error("Config is already registered!")
         }
 
+        //? if >= 26.1 {
         ConfigRegistry.INSTANCE.register(ChatExchange.MOD_ID, ModConfig.Type.COMMON, spec)
+        //?} else {
+        /*//? if >= 1.20.2 {
+        NeoForgeConfigRegistry.INSTANCE.register(ChatExchange.MOD_ID, ModConfig.Type.COMMON, spec)
+        //?} else {
+        /*ForgeConfigRegistry.INSTANCE.register(ChatExchange.MOD_ID, ModConfig.Type.COMMON, spec)
+        *///?}
+        *///?}
 
         registered = true
     }

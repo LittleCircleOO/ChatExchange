@@ -1,7 +1,7 @@
 {
   "required": true,
   "package": "nomathexpectation.chatexchange.mixin",
-  "compatibilityLevel": "JAVA_25",
+  "compatibilityLevel": "${java}",
   "mixins": [
     "PlayerAdvancementsMixin",
     "PlayerListMixin",

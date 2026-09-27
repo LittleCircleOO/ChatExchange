@@ -66,7 +66,7 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
                         return@executes 0
                     }
 
-                    val data = player.level().server.chatExchangeData
+                    val data = context.source.server.chatExchangeData
                     val toggle = BoolArgumentType.getBool(context, "toggle")
                     if (toggle) {
                         data.removeIgnoredPlayer(player.uuid)
@@ -84,7 +84,7 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
                     return@executes 0
                 }
 
-                val data = player.level().server.chatExchangeData
+                val data = context.source.server.chatExchangeData
                 if (data.isIgnoredPlayer(player.uuid)) {
                     player.sendSystemMessage("chatexchange.command.chatexchange.broadcastme.isoff".toTranslatableComponent())
                 } else {
