@@ -1,5 +1,6 @@
 package nomathexpectation.chatexchange
 
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.locale.Language
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
@@ -13,7 +14,11 @@ import net.minecraft.util.FormattedCharSequence
 import net.minecraft.util.StringDecomposer
 import net.minecraft.network.chat.Style
 import org.apache.logging.log4j.LogManager
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.util.*
+import java.util.zip.ZipFile
 
 class CustomLanguage(
     private val textMap: Map<String, String>,
@@ -36,6 +41,12 @@ class CustomLanguage(
 }
 
 private val logger = LogManager.getLogger(ChatExchange.MOD_ID)
+
+/**
+ * Admin override packs for external-forwarding localization, at `config/chatexchange_resourcepacks/`.
+ * See [loadResourcePackOverrides]; the directory (with a README) is created in [ChatExchange.onInitialize].
+ */
+val resourcePacksDir: Path = FabricLoader.getInstance().getConfigDir().resolve("${ChatExchange.MOD_ID}_resourcepacks")
 
 fun languageOf(lang: String, server: MinecraftServer): Language {
     val textMap = mutableMapOf<String, String>()
@@ -68,10 +79,13 @@ fun languageOf(lang: String, server: MinecraftServer): Language {
             }
             1
         }.sum()
-        logger.debug("Loaded {} mod language files for {}", loaded, lang)
+        logger.info("Loaded {} server/mod language file(s) for {}", loaded, lang)
     } else {
         logger.warn("Server resource manager is not a CloseableResourceManager; skipped mod language files for {}", lang)
     }
+
+    // admin override packs from config/chatexchange_resourcepacks (highest priority, loaded last)
+    loadResourcePackOverrides(lang, textMap)
 
     return CustomLanguage(textMap)
 }
@@ -81,6 +95,109 @@ fun languageOfOrDefault(lang: String, server: MinecraftServer): Language = runCa
 }.getOrElse {
     logger.error("Failed to load language: $lang", it)
     Language.getInstance()
+}
+
+/**
+ * Loads admin-provided override packs from [resourcePacksDir] into [textMap].
+ *
+ * Each entry may be a `.zip` file or a folder; no `pack.mcmeta` is required. Only
+ * `assets/<namespace>/lang/<locale>.json` files matching the target locale are read.
+ * Called last by [languageOf], so overrides win over mclang and server-pack translations.
+ * Entries are processed in name order; on key conflicts the later entry wins.
+ *
+ * Always logs the scan outcome (loaded / scanned-but-missed / empty / missing) at info level.
+ */
+private fun loadResourcePackOverrides(lang: String, textMap: MutableMap<String, String>) {
+    if (!Files.isDirectory(resourcePacksDir)) {
+        logger.info("Admin override directory config/{} does not exist; no override translations loaded.", resourcePacksDir.fileName)
+        return
+    }
+
+    val filePattern = "^[^/]+/lang/${Regex.escape(lang)}\\.json$".toRegex()
+    val loadedByPack = LinkedHashMap<String, Int>()
+    var scannedPacks = 0
+    var failedFiles = 0
+
+    fun countLoaded(packName: String) {
+        loadedByPack.merge(packName, 1, Int::plus)
+    }
+
+    Files.list(resourcePacksDir).use { it.sorted().toList() }.forEach { entry ->
+        val name = entry.fileName.toString()
+
+        if (Files.isDirectory(entry)) {
+            scannedPacks++
+            val assetsDir = entry.resolve("assets")
+            if (!Files.isDirectory(assetsDir)) {
+                return@forEach
+            }
+
+            Files.walk(assetsDir).use { walk ->
+                walk.filter { Files.isRegularFile(it) }.forEach { file ->
+                    val relative = assetsDir.relativize(file).toString().replace('\\', '/')
+                    if (!filePattern.matches(relative)) {
+                        return@forEach
+                    }
+
+                    runCatching {
+                        Files.newInputStream(file, StandardOpenOption.READ).use {
+                            Language.loadFromJson(it, textMap::put)
+                        }
+                        countLoaded(name)
+                    }.onFailure {
+                        failedFiles++
+                        logger.warn("Failed to load override language file {} from {}", relative, name, it)
+                    }
+                }
+            }
+        } else if (name.endsWith(".zip", ignoreCase = true)) {
+            scannedPacks++
+            runCatching {
+                ZipFile(entry.toFile()).use { zip ->
+                    zip.entries().toList().forEach { zipEntry ->
+                        if (zipEntry.isDirectory || !zipEntry.name.startsWith("assets/")) {
+                            return@forEach
+                        }
+
+                        val relative = zipEntry.name.removePrefix("assets/")
+                        if (!filePattern.matches(relative)) {
+                            return@forEach
+                        }
+
+                        runCatching {
+                            zip.getInputStream(zipEntry).use {
+                                Language.loadFromJson(it, textMap::put)
+                            }
+                            countLoaded(name)
+                        }.onFailure {
+                            failedFiles++
+                            logger.warn("Failed to load override language file {} from {}", zipEntry.name, name, it)
+                        }
+                    }
+                }
+            }.onFailure {
+                logger.warn("Failed to read override pack {}", name, it)
+            }
+        }
+    }
+
+    val total = loadedByPack.values.sum()
+    when {
+        total > 0 -> logger.info(
+            "Loaded {} override language file(s) for {} from config/{} [{}]{}",
+            total, lang, resourcePacksDir.fileName,
+            loadedByPack.entries.joinToString { "${it.key}: ${it.value}" },
+            if (failedFiles > 0) " ($failedFiles file(s) failed to parse)" else ""
+        )
+        scannedPacks > 0 -> logger.info(
+            "Scanned {} pack(s) in config/{} but none contained assets/<namespace>/lang/{}.json.",
+            scannedPacks, resourcePacksDir.fileName, lang
+        )
+        else -> logger.info(
+            "No override packs (.zip or folder) found in config/{}; no override translations loaded.",
+            resourcePacksDir.fileName
+        )
+    }
 }
 
 fun Component.getStringWithLanguage(language: Language): String {

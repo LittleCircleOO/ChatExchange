@@ -31,6 +31,8 @@ ChatExchange — a **server-side Fabric mod** (MC 26.2) that runs a TCP socket s
 ## Config (FCAP, file-based, no GUI)
 - `ChatExchangeConfig` is a Kotlin `object` using NeoForge `ModConfigSpec` (FCAP vendors `net.neoforged.neoforge.common.ModConfigSpec` / `net.neoforged.fml.config.ModConfig` at the same packages — original code reused near-verbatim). Register via `ConfigRegistry.INSTANCE.register(MOD_ID, ModConfig.Type.COMMON, spec)`.
 - No in-game config GUI exists on Fabric. Values are read with `.get()`; defaults via `ConfigValue.getDefault()`. File: `config/chatexchange-common.toml`.
+- Player-facing command feedback is sent as plain translatable components; server-translations-api (jij-bundled, lang mirrored from `assets/chatexchange/lang/` into `data/chatexchange/lang/` at `processResources`) resolves them per player's client language. The `language` config value only governs external-forwarding localization.
+- External-forwarding translation sources, merged in `CustomLanguage.languageOf` (later wins): bundled `mclang/<locale>.json` → server packs' `assets/<ns>/lang/<locale>.json` (via a forced `CLIENT_RESOURCES` view — vanilla never reads datapack assets itself) → **admin overrides in `config/chatexchange_resourcepacks/`** (zip or folder, no `pack.mcmeta` needed; dir + README created at init). Snapshot taken at `SERVER_STARTED`; restart to apply.
 
 ## Package & resources
 - Source package is all-lowercase `nomathexpectation.chatexchange` (Mixins in `.mixin`). The old NeoForge `NoMathExpectation.chatExchange.neoForged` package is deleted.

@@ -20,7 +20,7 @@ object ChatExchangeConfig {
             .translation("chatexchange.config.token")
             .worldRestart()
             .define("token", "")
-    val language: ModConfigSpec.ConfigValue<String> = builder.comment("The language messages will be translated to when forwarded to external exchange clients.", "Leave blank to use the language the game is using.", "Does not affect in-game command feedback, which follows each player's client language.")
+    val language: ModConfigSpec.ConfigValue<String> = builder.comment("The language messages will be translated to when forwarded to external exchange clients.", "Leave blank to use the language the game is using.", "Does not affect in-game command feedback, which follows each player's client language.", "Missing keys can be supplied or overridden via packs in config/chatexchange_resourcepacks/.")
         .translation("chatexchange.config.language")
         .worldRestart()
         .define("language", "")
@@ -37,7 +37,7 @@ object ChatExchangeConfig {
         .translation("chatexchange.config.mixinMode")
         .define("mixinMode", true)
 
-    val ignoreBotRegex: ModConfigSpec.ConfigValue<String> = builder.comment("The regex to match and ignore the bot players.", "Leave blank to disable.")
+    val ignoreBotRegex: ModConfigSpec.ConfigValue<String> = builder.comment("The regex (full match, i.e. implicitly anchored to the whole player name) to match and ignore the bot players.", "Example: [Bb][Oo][Tt]_.* ignores names starting with Bot_.", "Leave blank to disable.")
         .translation("chatexchange.config.ignoreBotRegex")
         .define("ignoreBotRegex", "") { it: Any? ->
             kotlin.runCatching {
