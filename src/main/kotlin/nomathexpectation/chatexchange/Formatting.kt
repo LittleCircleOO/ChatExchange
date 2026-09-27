@@ -95,7 +95,9 @@ object Formatting {
             "player" to source.displayName,
             "message" to Component.literal(message),
         )
-        val lookup = Function<String, Component?> { key -> vars[key] ?: Component.empty() }
+        // Unknown keys resolve to null and render as the literal "${key}" (StyledChat behaviour),
+        // so typos in format variables stay visible instead of silently vanishing.
+        val lookup = Function<String, Component?> { key -> vars[key] }
         //? if >= 26.1 {
         val ctx = ServerPlaceholderContext.of(source).asParserContext()
             .with(DYN_KEY, lookup)
@@ -126,7 +128,9 @@ object Formatting {
             "name" to Component.literal(fromName),
             "message" to Component.literal(message),
         )
-        val lookup = Function<String, Component?> { key -> vars[key] ?: Component.empty() }
+        // Unknown keys resolve to null and render as the literal "${key}" (StyledChat behaviour),
+        // so typos in format variables stay visible instead of silently vanishing.
+        val lookup = Function<String, Component?> { key -> vars[key] }
         //? if >= 26.1 {
         val ctx = ServerPlaceholderContext.of(server).asParserContext()
             .with(DYN_KEY, lookup)
