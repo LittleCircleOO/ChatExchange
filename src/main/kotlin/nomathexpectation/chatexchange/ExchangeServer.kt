@@ -146,7 +146,7 @@ class ExchangeServer(
                     return@runCatching
                 }
 
-                val message = ImagePool.buildMessage(event.content)
+                val message = ImagePool.buildMessage(minecraftServer, event.content)
 
                 val formatted = kotlin.runCatching {
                     Formatting.formatReceive(

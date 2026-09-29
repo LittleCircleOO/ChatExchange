@@ -3,6 +3,7 @@ package nomathexpectation.chatexchange.image
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.minecraft.network.chat.Component
+import net.minecraft.server.MinecraftServer
 import nomathexpectation.chatexchange.ChatExchangeConfig
 import org.apache.logging.log4j.LogManager
 import java.io.ByteArrayOutputStream
@@ -56,7 +57,7 @@ object ImagePool {
      * replaced with interactive placeholders, everything else is kept as literal text.
      * Must be called from a coroutine (network + decoding run on [Dispatchers.IO]).
      */
-    suspend fun buildMessage(content: String): Component {
+    suspend fun buildMessage(server: MinecraftServer, content: String): Component {
         if (!ChatExchangeConfig.imageEnabled.get()) {
             return Component.literal(content)
         }
@@ -73,7 +74,7 @@ object ImagePool {
                 is CICode.Segment.Image -> {
                     val entry = acquire(segment)
                     if (entry != null) {
-                        root.append(ImagePlaceholder.build(entry))
+                        root.append(ImagePlaceholder.build(entry, server))
                     } else {
                         // Keep the raw code visible so the message is not silently lost.
                         root.append(Component.literal(segment.raw))

@@ -62,12 +62,13 @@ fun BufferedImage.scaleToFit(maxWidth: Int, maxHeight: Int): BufferedImage {
     var newWidth = width
     var newHeight = height
     if (newWidth > maxWidth) {
+        newHeight = newHeight * maxWidth / newWidth
         newWidth = maxWidth
-        newHeight = newHeight * maxWidth / width
     }
     if (newHeight > maxHeight) {
-        newHeight = maxHeight
+        // Compute before overwriting newHeight, otherwise tall/skinny images get stretched to full width.
         newWidth = newWidth * maxHeight / newHeight
+        newHeight = maxHeight
     }
     if (newWidth <= 0 || newHeight <= 0) {
         newWidth = 1

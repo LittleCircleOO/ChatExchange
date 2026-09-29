@@ -4,23 +4,29 @@ import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
 import net.minecraft.network.chat.Style
+import net.minecraft.server.MinecraftServer
 import nomathexpectation.chatexchange.ChatExchangeConfig
+import nomathexpectation.chatexchange.Formatting
 
 /**
- * Builds the interactive `[image]` placeholder component for one pooled image:
- * underlined text (config value = translation key, resolved per player language by
- * server-translations-api; falls back to the literal config string for custom text),
- * hover shows a small ASCII preview, click opens the preview dialog (26.x) or the
- * fallback button message (older versions).
+ * Builds the interactive image placeholder component for one pooled image.
+ * The visual format comes from `imagePlaceholderFormat` (Simplified Text Format with a
+ * `${image}` dynamic variable holding the localized name resolved from `imagePlaceholderText`
+ * per player language via server-translations-api — same `${...}` style as the other format
+ * strings); hover/click interactions are attached by the mod.
  */
 object ImagePlaceholder {
-    fun build(entry: ImagePool.Entry): Component {
-        val text = Component.translatable(ChatExchangeConfig.imagePlaceholderText.get())
-        val style = Style.EMPTY
-            .withUnderlined(true)
-            .withHoverEvent(hoverEvent(entry))
+    fun build(entry: ImagePool.Entry, server: MinecraftServer): Component {
+        val name = Component.translatable(ChatExchangeConfig.imagePlaceholderText.get())
+        val format = ChatExchangeConfig.imagePlaceholderFormat.get()
 
-        return text.withStyle(style.withClickEvent(clickEvent(entry)))
+        return Formatting.formatVars(format, server, mapOf("image" to name))
+            .copy()
+            .withStyle { style ->
+                style
+                    .withHoverEvent(hoverEvent(entry))
+                    .withClickEvent(clickEvent(entry))
+            }
     }
 
     private fun hoverEvent(entry: ImagePool.Entry): HoverEvent {

@@ -126,10 +126,19 @@ object Formatting {
      */
     @JvmStatic
     fun formatReceive(format: String, server: MinecraftServer, fromName: String, message: Component): Component {
-        val vars = mapOf(
+        return formatVars(format, server, mapOf(
             "name" to Component.literal(fromName),
             "message" to message,
-        )
+        ))
+    }
+
+    /**
+     * Formats an arbitrary template (Simplified Text Format + `${...}` local vars)
+     * against the given variable values, with no player context. Unknown keys
+     * render as the literal `${key}` (StyledChat behaviour).
+     */
+    @JvmStatic
+    fun formatVars(format: String, server: MinecraftServer, vars: Map<String, Component>): Component {
         // Unknown keys resolve to null and render as the literal "${key}" (StyledChat behaviour),
         // so typos in format variables stay visible instead of silently vanishing.
         val lookup = Function<String, Component?> { key -> vars[key] }
