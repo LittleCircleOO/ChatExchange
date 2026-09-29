@@ -61,8 +61,9 @@ object ImageDialog {
         if (configured > 0) {
             return configured
         }
-        // Block glyphs advance 9px each; add padding so lines do not wrap.
-        return (entry.dialogArtWidthChars * 9 + 40).coerceIn(200, 1200)
+        // Glyph advance depends on the client font: 8px with a unifont-style glyph,
+        // 6px as the vanilla missing-glyph box. 8 adds only harmless slack on vanilla.
+        return (entry.dialogArtWidthChars * ChatExchangeConfig.imageDialogCharWidth.get() + 40).coerceIn(200, 1200)
     }
 }
 //?}
