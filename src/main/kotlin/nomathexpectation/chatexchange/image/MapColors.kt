@@ -120,11 +120,12 @@ object MapColors {
     )
 
     // [index, r, g, b] rows for every base color x brightness combination.
+    // getPackedId returns a signed byte; & 0xFF keeps indices in the 0-255 range.
     private val PALETTE: Array<IntArray> = buildList {
         for (base in BASES) {
             for (brightness in enumValues<MapColor.Brightness>()) {
                 val rgb = base.rgbAt(brightness)
-                add(intArrayOf(base.getPackedId(brightness).toInt(), rgb shr 16 and 0xFF, rgb shr 8 and 0xFF, rgb and 0xFF))
+                add(intArrayOf(base.getPackedId(brightness).toInt() and 0xFF, rgb shr 16 and 0xFF, rgb shr 8 and 0xFF, rgb and 0xFF))
             }
         }
     }.toTypedArray()
