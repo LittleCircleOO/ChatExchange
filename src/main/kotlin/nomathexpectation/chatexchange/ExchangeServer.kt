@@ -186,9 +186,9 @@ class ExchangeServer(
                 }.replaceName().append(event.content)
 
                 logger.info(formatted.getStringWithLanguage(language))
-                minecraftServer.playerList.players.forEach {
-                    it.sendSystemMessage(formatted)
-                }
+                // Route through PlayerList.broadcastSystemMessage (not per-player sendSystemMessage)
+                // so chat-history mods hooking the broadcast path can capture external messages.
+                minecraftServer.playerList.broadcastSystemMessage(formatted, false)
             }.onFailure {
                 if (channel.isClosedForRead) {
                     return
