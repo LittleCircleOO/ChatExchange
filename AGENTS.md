@@ -35,7 +35,6 @@ ChatExchange — a **server-side Fabric mod** (MC 26.2) that runs a TCP socket s
 ## Package & resources
 - Source package is all-lowercase `nomathexpectation.chatexchange` (Mixins in `.mixin`). The old NeoForge `NoMathExpectation.chatExchange.neoForged` package is deleted.
 - Localization: `assets/chatexchange/lang/{en_us,zh_cn}.json` (mod's own keys) and `mclang/` (bundled vanilla strings for the exchange server's language resolution) are kept. `fmllang/` and `neolang/` (FML/NeoForge platform strings) were deleted — do not restore them.
-- Local references for MC internals: Minecraft 26.2 source at `D:\Users\LZY\Documents\GitHub\Minecraft` (branch `26.2.x`), NeoForge reference at `D:\Users\LZY\Documents\GitHub\NeoForge`.
 
 ## Windows / case-sensitive gotcha
 - The dev filesystem is case-insensitive. Package/paths are lowercase; to rename a directory's case in git you must use a **two-step `git mv`** via a temp name (direct case-only rename is a no-op). After any package rename, verify `git ls-files --stage` holds lowercase before committing.
