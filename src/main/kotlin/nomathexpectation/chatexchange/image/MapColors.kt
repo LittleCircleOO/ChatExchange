@@ -1,8 +1,6 @@
 package nomathexpectation.chatexchange.image
 
 import net.minecraft.world.level.material.MapColor
-import java.awt.geom.AffineTransform
-import java.awt.image.AffineTransformOp
 import java.awt.image.BufferedImage
 
 /**
@@ -59,7 +57,7 @@ fun BufferedImage.toMapColors(): ByteArray {
     return result
 }
 
-/** Nearest-neighbour scaling into [maxWidth] x [maxHeight] box, aspect-preserving and centered. */
+/** Smooth (area-averaging) scaling into [maxWidth] x [maxHeight] box, aspect-preserving and centered. */
 fun BufferedImage.scaleToFit(maxWidth: Int, maxHeight: Int): BufferedImage {
     var newWidth = width
     var newHeight = height
@@ -76,13 +74,18 @@ fun BufferedImage.scaleToFit(maxWidth: Int, maxHeight: Int): BufferedImage {
         newHeight = 1
     }
 
+    // getScaledInstance(SCALE_SMOOTH) performs multi-step area averaging on large
+    // downscales (the Image2Map approach); nearest-neighbour resampling loses detail
+    // that dithering cannot recover, which reads as heavy color bias on map art.
+    val scaled = getScaledInstance(newWidth, newHeight, BufferedImage.SCALE_SMOOTH)
+
     val output = BufferedImage(maxWidth, maxHeight, BufferedImage.TYPE_INT_ARGB)
-    val sx = newWidth.toDouble() / width
-    val sy = newHeight.toDouble() / height
-    val transform = AffineTransform.getScaleInstance(sx, sy)
-    transform.translate((maxWidth - newWidth).toDouble() / 2 / sx, (maxHeight - newHeight).toDouble() / 2 / sy)
-    val op = AffineTransformOp(transform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR)
-    op.filter(this, output)
+    val graphics = output.createGraphics()
+    try {
+        graphics.drawImage(scaled, (maxWidth - newWidth) / 2, (maxHeight - newHeight) / 2, null)
+    } finally {
+        graphics.dispose()
+    }
     return output
 }
 
@@ -94,11 +97,6 @@ fun BufferedImage.scaleToFit(maxWidth: Int, maxHeight: Int): BufferedImage {
  */
 object MapColors {
     const val MAP_SIZE = 128
-
-    /** Perceptual weights for red/green/blue channels during nearest-color matching. */
-    private const val WEIGHT_R = 30.0
-    private const val WEIGHT_G = 59.0
-    private const val WEIGHT_B = 11.0
 
     private val BASES: Array<MapColor> = arrayOf(
         MapColor.GRASS, MapColor.SAND, MapColor.WOOL, MapColor.FIRE, MapColor.ICE,
@@ -131,6 +129,13 @@ object MapColors {
         }
     }.toTypedArray()
 
+    // Direct lookup table: packed index (0-255) -> palette row.
+    private val BY_INDEX: Array<IntArray?> = arrayOfNulls<IntArray>(256).also { table ->
+        for (entry in PALETTE) {
+            table[entry[0]] = entry
+        }
+    }
+
     private fun MapColor.rgbAt(brightness: MapColor.Brightness): Int {
         //? if >= 26.1 {
         return this.calculateARGBColor(brightness) and 0xFFFFFF
@@ -139,15 +144,15 @@ object MapColors {
         *///?}
     }
 
-    /** Finds the palette index closest to the given opaque RGB color (weighted distance). */
+    /** Finds the palette index closest to the given opaque RGB color (unweighted squared distance, as used by map-canvas-api). */
     fun matchColor(r: Int, g: Int, b: Int): Byte {
         var best = PALETTE[0]
-        var bestDist = Double.MAX_VALUE
+        var bestDist = Int.MAX_VALUE
         for (entry in PALETTE) {
-            val dr = r - entry[1].toDouble()
-            val dg = g - entry[2].toDouble()
-            val db = b - entry[3].toDouble()
-            val dist = WEIGHT_R * dr * dr + WEIGHT_G * dg * dg + WEIGHT_B * db * db
+            val dr = r - entry[1]
+            val dg = g - entry[2]
+            val db = b - entry[3]
+            val dist = dr * dr + dg * dg + db * db
             if (dist < bestDist) {
                 bestDist = dist
                 best = entry
@@ -158,6 +163,7 @@ object MapColors {
 
     /** Returns the [r, g, b] triple of a palette entry by its packed index. */
     fun paletteEntryOf(index: Byte): IntArray {
-        return PALETTE.first { it[0] == index.toInt() }
+        val unsigned = index.toInt() and 0xFF
+        return BY_INDEX[unsigned] ?: PALETTE[0]
     }
 }
