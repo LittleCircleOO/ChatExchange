@@ -11,6 +11,8 @@ import kotlinx.serialization.json.Json
 import net.minecraft.locale.Language
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
+import nomathexpectation.chatexchange.image.ImagePool
+import nomathexpectation.chatexchange.image.VirtualMapDisplay
 import org.apache.logging.log4j.LogManager
 import kotlin.time.Duration.Companion.seconds
 
@@ -144,12 +146,14 @@ class ExchangeServer(
                     return@runCatching
                 }
 
+                val message = ImagePool.buildMessage(event.content)
+
                 val formatted = kotlin.runCatching {
                     Formatting.formatReceive(
                         ChatExchangeConfig.receiveMessageFormat.get(),
                         minecraftServer,
                         event.from,
-                        event.content,
+                        message,
                     )
                 }.getOrElse {
                     logger.warn("Failed to format message from receive message format. Using default.", it)
@@ -157,7 +161,7 @@ class ExchangeServer(
                         ChatExchangeConfig.receiveMessageFormat.default,
                         minecraftServer,
                         event.from,
-                        event.content,
+                        message,
                     )
                 }
 
@@ -248,6 +252,7 @@ class ExchangeServer(
 
         fun stopInstance() {
             logger.info("Stopping exchange server...")
+            VirtualMapDisplay.shutdown()
             instance?.cancel()
             instance = null
         }

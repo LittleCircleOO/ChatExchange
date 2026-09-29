@@ -119,14 +119,16 @@ object Formatting {
      * External receive path (message arriving from a TCP client).
      *
      * Local vars: `${name}` = the external sender's name ([MessageEvent.from]),
-     * `${message}` = the message body ([MessageEvent.content]). There is no in-game player
-     * entity, so `%player:*%` cannot resolve; the sender is expressed solely as `${name}`.
+     * `${message}` = the message body ([MessageEvent.content]), with image CICodes
+     * already replaced by interactive placeholder components by `ImagePool.buildMessage`.
+     * There is no in-game player entity, so `%player:*%` cannot resolve; the sender
+     * is expressed solely as `${name}`.
      */
     @JvmStatic
-    fun formatReceive(format: String, server: MinecraftServer, fromName: String, message: String): Component {
+    fun formatReceive(format: String, server: MinecraftServer, fromName: String, message: Component): Component {
         val vars = mapOf(
             "name" to Component.literal(fromName),
-            "message" to Component.literal(message),
+            "message" to message,
         )
         // Unknown keys resolve to null and render as the literal "${key}" (StyledChat behaviour),
         // so typos in format variables stay visible instead of silently vanishing.

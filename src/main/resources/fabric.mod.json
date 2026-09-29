@@ -29,8 +29,5 @@
 		"forgeconfigapiport": "*",
 		"placeholder-api": "*",
 		"server_translations_api": "*"
-	},
-	"recommends": {
-		"chatimage": "*"
 	}
 }

@@ -1,9 +1,16 @@
 package nomathexpectation.chatexchange
 
 import com.mojang.brigadier.arguments.BoolArgumentType
+import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+import nomathexpectation.chatexchange.image.ImagePool
+import nomathexpectation.chatexchange.image.MapArt
+import nomathexpectation.chatexchange.image.VirtualMapDisplay
+//? if < 26.1 {
+/*import nomathexpectation.chatexchange.image.ImageMenu
+*///?}
 import org.apache.logging.log4j.LogManager
 
 private val logger = LogManager.getLogger(ChatExchange.MOD_ID)
@@ -93,7 +100,8 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
 
                 1
             }
-        ).executes { context ->
+        ).then(imageCommand())
+        .executes { context ->
             context.source.sendSystemMessage(
                 "chatexchange.command.chatexchange.description".toTranslatableComponent()
             )
@@ -107,4 +115,75 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
     // /bcme <true|false> == /chatexchange broadcastme <true|false>.
     dispatcher.register(Commands.literal("bc").redirect(command.getChild("send")))
     dispatcher.register(Commands.literal("bcme").redirect(command.getChild("broadcastme")))
+}
+
+private fun imageCommand(): com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> {
+    val builder = Commands.literal("image")
+        .then(
+            Commands.literal("preview").then(
+                Commands.argument("id", IntegerArgumentType.integer(0)).executes { context ->
+                    val player = context.source.player ?: kotlin.run {
+                        context.source.sendSystemMessage("chatexchange.const.onlyPlayer".toTranslatableComponent())
+                        return@executes 0
+                    }
+
+                    val id = IntegerArgumentType.getInteger(context, "id")
+                    val entry = ImagePool.get(id)
+                    if (entry == null) {
+                        player.sendSystemMessage("chatexchange.image.expired".toTranslatableComponent())
+                        return@executes 0
+                    }
+
+                    VirtualMapDisplay.show(player, entry)
+                    1
+                }
+            )
+        ).then(
+            Commands.literal("map").then(
+                Commands.argument("id", IntegerArgumentType.integer(0)).executes { context ->
+                    val player = context.source.player ?: kotlin.run {
+                        context.source.sendSystemMessage("chatexchange.const.onlyPlayer".toTranslatableComponent())
+                        return@executes 0
+                    }
+
+                    if (!ChatExchangeConfig.imageMapArtEnabled.get()) {
+                        player.sendSystemMessage("chatexchange.image.map_art.disabled".toTranslatableComponent())
+                        return@executes 0
+                    }
+
+                    val id = IntegerArgumentType.getInteger(context, "id")
+                    val entry = ImagePool.get(id)
+                    if (entry == null) {
+                        player.sendSystemMessage("chatexchange.image.expired".toTranslatableComponent())
+                        return@executes 0
+                    }
+
+                    MapArt.giveTo(player, entry)
+                    1
+                }
+            )
+        )
+        //? if < 26.1 {
+        /*.then(
+            Commands.literal("menu").then(
+                Commands.argument("id", IntegerArgumentType.integer(0)).executes { context ->
+                    val player = context.source.player ?: kotlin.run {
+                        context.source.sendSystemMessage("chatexchange.const.onlyPlayer".toTranslatableComponent())
+                        return@executes 0
+                    }
+
+                    val id = IntegerArgumentType.getInteger(context, "id")
+                    val entry = ImagePool.get(id)
+                    if (entry == null) {
+                        player.sendSystemMessage("chatexchange.image.expired".toTranslatableComponent())
+                        return@executes 0
+                    }
+
+                    ImageMenu.send(player, entry)
+                    1
+                }
+            )
+        )
+        *///?}
+    return builder
 }
