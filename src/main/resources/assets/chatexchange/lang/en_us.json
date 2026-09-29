@@ -40,6 +40,7 @@
   "chatexchange.config.image.hoverPreviewHeight": "Hover Preview Height",
   "chatexchange.config.image.dialogPreviewWidth": "Dialog Preview Width",
   "chatexchange.config.image.dialogPreviewHeight": "Dialog Preview Height",
+  "chatexchange.config.image.dialogBodyWidth": "Dialog Body Width",
   "chatexchange.config.image.virtualPreviewSeconds": "Virtual Preview Seconds",
   "chatexchange.config.image.mapArtEnabled": "Enable Map Art Creation",
   "chatexchange.config.image.cacheSize": "Image Cache Size",

@@ -57,6 +57,10 @@ object ImageDialog {
     }
 
     private fun dialogWidth(entry: ImagePool.Entry): Int {
+        val configured = ChatExchangeConfig.imageDialogBodyWidth.get()
+        if (configured > 0) {
+            return configured
+        }
         // Block glyphs advance 9px each; add padding so lines do not wrap.
         return (entry.dialogArtWidthChars * 9 + 40).coerceIn(200, 1200)
     }
