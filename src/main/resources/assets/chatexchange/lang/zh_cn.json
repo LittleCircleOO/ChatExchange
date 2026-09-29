@@ -24,7 +24,7 @@
   "chatexchange.command.chatexchange.broadcastme.off": "你的聊天消息现在不会被广播了。",
   "chatexchange.command.chatexchange.broadcastme.ison": "你的聊天消息当前会被广播。",
   "chatexchange.command.chatexchange.broadcastme.isoff": "你的聊天消息当前不会被广播。",
-  "chatexchange.image.placeholder": "[图片]",
+  "chatexchange.image.placeholder": "图片",
   "chatexchange.image.action.preview": "预览高清图片",
   "chatexchange.image.action.map": "生成地图画",
   "chatexchange.image.dialog.title": "图片预览",

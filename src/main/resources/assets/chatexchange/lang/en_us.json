@@ -24,7 +24,7 @@
   "chatexchange.command.chatexchange.broadcastme.off": "Your chat messages will not be broadcast.",
   "chatexchange.command.chatexchange.broadcastme.ison": "Your chat messages are currently being broadcast.",
   "chatexchange.command.chatexchange.broadcastme.isoff": "Your chat messages are currently not being broadcast.",
-  "chatexchange.image.placeholder": "[Image]",
+  "chatexchange.image.placeholder": "Image",
   "chatexchange.image.action.preview": "Preview HD image",
   "chatexchange.image.action.map": "Create map art",
   "chatexchange.image.dialog.title": "Image preview",

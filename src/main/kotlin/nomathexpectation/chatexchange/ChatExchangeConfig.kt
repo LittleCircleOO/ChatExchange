@@ -94,7 +94,7 @@ object ChatExchangeConfig {
     val imageEnabled: ModConfigSpec.BooleanValue = builder.push("image").comment("Whether to render images referenced by inbound messages (CICode with http(s)/base64 urls).", "When disabled, image codes are forwarded as plain text.")
         .translation("chatexchange.config.image.enabled")
         .define("enabled", true)
-    val imagePlaceholderText: ModConfigSpec.ConfigValue<String> = builder.comment("Translation key (or literal text) injected as the localized name into imagePlaceholderFormat's {1} slot.", "Translation keys are resolved per player language via server translations; unknown keys fall back to the literal value.")
+    val imagePlaceholderText: ModConfigSpec.ConfigValue<String> = builder.comment("Translation key (or literal text) injected as the localized name into the imagePlaceholderFormat ${'$'}{image} variable.", "Translation keys are resolved per player language via server translations; unknown keys fall back to the literal value.")
         .translation("chatexchange.config.image.placeholderText")
         .define("placeholderText", "chatexchange.image.placeholder")
     val imagePlaceholderFormat: ModConfigSpec.ConfigValue<String> = builder.comment("Visual format of the clickable image placeholder, in Simplified Text Format (TextPlaceholderAPI).", "The variable ${'$'}{image} stands for the localized placeholder name; hover preview and click interactions are attached automatically.")
