@@ -104,10 +104,16 @@ object ImagePool {
         } ?: return null
 
         val hash = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
-        val hoverWidth = ChatExchangeConfig.imageHoverPreviewWidth.get().coerceAtLeast(1)
-        val hover = AsciiArt.render(image, hoverWidth, hoverWidth)
-        val dialogWidth = ChatExchangeConfig.imageDialogPreviewWidth.get().coerceAtLeast(1)
-        val dialog = AsciiArt.render(image, dialogWidth, dialogWidth)
+        val hover = AsciiArt.render(
+            image,
+            ChatExchangeConfig.imageHoverPreviewWidth.get().coerceAtLeast(1),
+            ChatExchangeConfig.imageHoverPreviewHeight.get().coerceAtLeast(1),
+        )
+        val dialog = AsciiArt.render(
+            image,
+            ChatExchangeConfig.imageDialogPreviewWidth.get().coerceAtLeast(1),
+            ChatExchangeConfig.imageDialogPreviewHeight.get().coerceAtLeast(1),
+        )
         val entry = Entry(
             id = nextId.incrementAndGet(),
             hash = hash,

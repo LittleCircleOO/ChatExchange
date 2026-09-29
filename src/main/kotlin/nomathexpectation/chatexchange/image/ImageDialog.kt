@@ -58,7 +58,7 @@ object ImageDialog {
 
     private fun dialogWidth(entry: ImagePool.Entry): Int {
         // Block glyphs advance 9px each; add padding so lines do not wrap.
-        return (entry.dialogArtWidthChars * 9 + 40).coerceIn(200, 600)
+        return (entry.dialogArtWidthChars * 9 + 40).coerceIn(200, 1200)
     }
 }
 //?}
