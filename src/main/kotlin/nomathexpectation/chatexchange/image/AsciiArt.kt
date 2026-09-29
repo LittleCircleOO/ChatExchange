@@ -21,7 +21,7 @@ object AsciiArt {
     class Result(val component: MutableComponent, val widthChars: Int)
 
     fun render(image: BufferedImage, maxWidth: Int, maxHeight: Int): Result {
-        val scaled = image.scaleToFit(maxWidth, maxHeight)
+        val scaled = image.scaleToFit(maxWidth, maxHeight).trimTransparent()
         val width = scaled.width
         val height = scaled.height
         val root = Component.literal("")
@@ -72,4 +72,55 @@ object AsciiArt {
 
         return Result(root, width)
     }
+}
+
+/**
+ * Crops fully transparent rows/columns from the image edges (letterbox padding
+ * from aspect-preserving scaling, cf. ChatImage's trimTransparency), so blank
+ * lines/spaces never count against the configured size limits.
+ */
+private fun BufferedImage.trimTransparent(): BufferedImage {
+    var top = 0
+    var bottom = height - 1
+    var left = 0
+    var right = width - 1
+
+    fun rowBlank(y: Int): Boolean {
+        for (x in 0 until width) {
+            if (getRGB(x, y) ushr 24 != 0) {
+                return false
+            }
+        }
+        return true
+    }
+
+    fun columnBlank(x: Int): Boolean {
+        for (y in 0 until height) {
+            if (getRGB(x, y) ushr 24 != 0) {
+                return false
+            }
+        }
+        return true
+    }
+
+    while (top <= bottom && rowBlank(top)) {
+        top++
+    }
+    if (top > bottom) {
+        return this // fully transparent
+    }
+    while (rowBlank(bottom)) {
+        bottom--
+    }
+    while (columnBlank(left)) {
+        left++
+    }
+    while (columnBlank(right)) {
+        right--
+    }
+
+    if (left == 0 && top == 0 && right == width - 1 && bottom == height - 1) {
+        return this
+    }
+    return getSubimage(left, top, right - left + 1, bottom - top + 1)
 }
