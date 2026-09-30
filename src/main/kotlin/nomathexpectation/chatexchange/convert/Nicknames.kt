@@ -26,7 +26,13 @@ object Nicknames {
             if (Files.notExists(path)) {
                 Files.writeString(
                     path,
-                    """{"_readme": "QQ number -> display nickname map used for @ mentions. Changes are hot-reloaded on file modification, e.g. {\"123456\": \"张三\"}"}""" + System.lineSeparator(),
+                    """
+                    {
+                      "_readme": "QQ number -> display nickname map, used to render @ mentions and poke targets (falls back to the raw number when unmapped). Changes are hot-reloaded on file modification. The entries below are examples - replace them with your own.",
+                      "123456": "张三",
+                      "654321": "李四"
+                    }
+                    """.trimIndent() + System.lineSeparator(),
                 )
             }
         }
