@@ -1,7 +1,7 @@
 mod.id = "chatexchange"
 mod.name = "ChatExchange"
 mod.group = "nomathexpectation.chatexchange"
-mod.version = "0.2"
+mod.version = "0.3"
 
 deps.fabric_loader = "0.19.5"
 deps.fabric_kotlin = "1.14.1+kotlin.2.4.20"
