@@ -1,6 +1,8 @@
 package nomathexpectation.chatexchange
 
 import net.fabricmc.api.ModInitializer
+import net.fabricmc.loader.api.FabricLoader
+import nomathexpectation.chatexchange.convert.Nicknames
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 
@@ -15,6 +17,7 @@ object ChatExchange : ModInitializer {
         ChatExchangeConfig.register()
         registerChatExchangePlaceholders()
         ExchangeHooks.register()
+        Nicknames.prepare(FabricLoader.getInstance().getConfigDir())
         createResourcePacksDir()
     }
 

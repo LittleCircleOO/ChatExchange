@@ -91,6 +91,15 @@ object ChatExchangeConfig {
             Formatting.validate(it as? String)
         }
 
+    val pokeEnabled: ModConfigSpec.BooleanValue = builder.comment("Whether to broadcast poke (戳一戳) messages received from external clients.", "A message is treated as a poke when it contains only poke segments (and blank text); such messages are dropped entirely when disabled.")
+        .translation("chatexchange.config.pokeEnabled")
+        .define("pokeEnabled", false)
+    val pokeFormat: ModConfigSpec.ConfigValue<String> = builder.comment("The message format for poke messages (used instead of receiveMessageFormat).", "Uses Simplified Text Format. Local vars: name (poker), action (poke action, localized default 戳了戳), target (poked user, nickname if known).")
+        .translation("chatexchange.config.pokeFormat")
+        .define("pokeFormat", $$"""<yellow>* ${name} ${action} ${target}</yellow>""") { it: Any? ->
+            Formatting.validate(it as? String)
+        }
+
     val imageEnabled: ModConfigSpec.BooleanValue = builder.push("image").comment("Whether to render images referenced by inbound messages (CICode with http(s)/base64 urls).", "When disabled, image codes are forwarded as plain text.")
         .translation("chatexchange.config.image.enabled")
         .define("enabled", true)
@@ -142,6 +151,48 @@ object ChatExchangeConfig {
     val imageUrlAllowlist: ModConfigSpec.ConfigValue<String> = builder.comment("Comma-separated host allowlist for image downloads (suffix match).", "Leave blank to allow any host.")
         .translation("chatexchange.config.image.urlAllowlist")
         .define("urlAllowlist", "")
+        .also { builder.pop() }
+
+    val onebotImageFormat: ModConfigSpec.ConfigValue<String> = builder.push("onebot").comment("Visual format of the inbound OneBot image placeholder (shown when an image segment cannot be rendered), in Simplified Text Format (TextPlaceholderAPI).", "The variable ${'$'}{placeholder} stands for the localized name from the chatexchange.onebot.image key (per player language).")
+        .translation("chatexchange.config.onebot.imageFormat")
+        .define("imageFormat", $$"""<aqua><underlined>[${placeholder}]</underlined></aqua>""") { it: Any? ->
+            Formatting.validate(it as? String)
+        }
+    val onebotVoiceFormat: ModConfigSpec.ConfigValue<String> = builder.comment("Visual format of the inbound OneBot voice placeholder (clickable when a URL is available).", "The variable ${'$'}{placeholder} stands for the localized name from the chatexchange.onebot.voice key.")
+        .translation("chatexchange.config.onebot.voiceFormat")
+        .define("voiceFormat", $$"""<aqua><underlined>[${placeholder}]</underlined></aqua>""") { it: Any? ->
+            Formatting.validate(it as? String)
+        }
+    val onebotVideoFormat: ModConfigSpec.ConfigValue<String> = builder.comment("Visual format of the inbound OneBot video placeholder (clickable when a URL is available).", "The variable ${'$'}{placeholder} stands for the localized name from the chatexchange.onebot.video key.")
+        .translation("chatexchange.config.onebot.videoFormat")
+        .define("videoFormat", $$"""<aqua><underlined>[${placeholder}]</underlined></aqua>""") { it: Any? ->
+            Formatting.validate(it as? String)
+        }
+    val onebotLinkFormat: ModConfigSpec.ConfigValue<String> = builder.comment("Visual format of the inbound OneBot link/share placeholder (clickable when a URL is available).", "The variable ${'$'}{placeholder} stands for the localized name from the chatexchange.onebot.link key.")
+        .translation("chatexchange.config.onebot.linkFormat")
+        .define("linkFormat", $$"""<aqua><underlined>[${placeholder}]</underlined></aqua>""") { it: Any? ->
+            Formatting.validate(it as? String)
+        }
+    val onebotReplyFormat: ModConfigSpec.ConfigValue<String> = builder.comment("Visual format of the inbound OneBot reply-quote placeholder (hover shows the quoted content, click expands it).", "The variable ${'$'}{placeholder} stands for the localized name from the chatexchange.onebot.reply key.")
+        .translation("chatexchange.config.onebot.replyFormat")
+        .define("replyFormat", $$"""<aqua><underlined>[${placeholder}]</underlined></aqua>""") { it: Any? ->
+            Formatting.validate(it as? String)
+        }
+    val onebotForwardFormat: ModConfigSpec.ConfigValue<String> = builder.comment("Visual format of the inbound OneBot merged-forward placeholder (clickable when the content is expandable).", "The variable ${'$'}{placeholder} stands for the localized name from the chatexchange.onebot.forward key.")
+        .translation("chatexchange.config.onebot.forwardFormat")
+        .define("forwardFormat", $$"""<aqua><underlined>[${placeholder}]</underlined></aqua>""") { it: Any? ->
+            Formatting.validate(it as? String)
+        }
+    val onebotFlashFormat: ModConfigSpec.ConfigValue<String> = builder.comment("Visual format of the inbound OneBot flash-photo placeholder.", "The variable ${'$'}{placeholder} stands for the localized name from the chatexchange.onebot.flash key.")
+        .translation("chatexchange.config.onebot.flashFormat")
+        .define("flashFormat", $$"""<aqua><underlined>[${placeholder}]</underlined></aqua>""") { it: Any? ->
+            Formatting.validate(it as? String)
+        }
+    val onebotUnsupportedFormat: ModConfigSpec.ConfigValue<String> = builder.comment("Visual format of the inbound OneBot unsupported-message placeholder (xml/unknown segments; click shows the raw content).", "The variable ${'$'}{placeholder} stands for the localized name from the chatexchange.onebot.unsupported key.")
+        .translation("chatexchange.config.onebot.unsupportedFormat")
+        .define("unsupportedFormat", $$"""<aqua><underlined>[${placeholder}]</underlined></aqua>""") { it: Any? ->
+            Formatting.validate(it as? String)
+        }
         .also { builder.pop() }
 
     val spec: ModConfigSpec = builder.build()

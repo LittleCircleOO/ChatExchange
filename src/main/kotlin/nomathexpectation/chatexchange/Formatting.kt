@@ -133,6 +133,22 @@ object Formatting {
     }
 
     /**
+     * External receive path for poke-only messages, using the dedicated poke format
+     * instead of [formatReceive]: pokes are action notices, not chat content.
+     *
+     * Local vars: `${name}` = the poker, `${action}` = the poke action (segment name
+     * or localized default), `${target}` = the poked user (nickname if known).
+     */
+    @JvmStatic
+    fun formatPoke(format: String, server: MinecraftServer, fromName: String, action: Component, target: Component): Component {
+        return formatVars(format, server, mapOf(
+            "name" to Component.literal(fromName),
+            "action" to action,
+            "target" to target,
+        ))
+    }
+
+    /**
      * Formats an arbitrary template (Simplified Text Format + `${...}` local vars)
      * against the given variable values, with no player context. Unknown keys
      * render as the literal `${key}` (StyledChat behaviour).

@@ -11,8 +11,8 @@ import kotlinx.serialization.json.Json
 import net.minecraft.locale.Language
 import net.minecraft.network.chat.Component
 import net.minecraft.server.MinecraftServer
-import nomathexpectation.chatexchange.image.ImagePool
 import nomathexpectation.chatexchange.image.VirtualMapDisplay
+import nomathexpectation.chatexchange.render.MessageRenderer
 import org.apache.logging.log4j.LogManager
 import kotlin.time.Duration.Companion.seconds
 
@@ -146,23 +146,48 @@ class ExchangeServer(
                     return@runCatching
                 }
 
-                val message = ImagePool.buildMessage(minecraftServer, event.content)
+                val rendered = MessageRenderer.buildMessage(minecraftServer, event.content)
 
-                val formatted = kotlin.runCatching {
-                    Formatting.formatReceive(
-                        ChatExchangeConfig.receiveMessageFormat.get(),
-                        minecraftServer,
-                        event.from,
-                        message,
-                    )
-                }.getOrElse {
-                    logger.warn("Failed to format message from receive message format. Using default.", it)
-                    Formatting.formatReceive(
-                        ChatExchangeConfig.receiveMessageFormat.default,
-                        minecraftServer,
-                        event.from,
-                        message,
-                    )
+                val formatted = if (rendered.poke != null) {
+                    if (!ChatExchangeConfig.pokeEnabled.get()) {
+                        return@runCatching
+                    }
+
+                    kotlin.runCatching {
+                        Formatting.formatPoke(
+                            ChatExchangeConfig.pokeFormat.get(),
+                            minecraftServer,
+                            event.from,
+                            rendered.poke.action,
+                            rendered.poke.target,
+                        )
+                    }.getOrElse {
+                        logger.warn("Failed to format poke message from poke message format. Using default.", it)
+                        Formatting.formatPoke(
+                            ChatExchangeConfig.pokeFormat.default,
+                            minecraftServer,
+                            event.from,
+                            rendered.poke.action,
+                            rendered.poke.target,
+                        )
+                    }
+                } else {
+                    kotlin.runCatching {
+                        Formatting.formatReceive(
+                            ChatExchangeConfig.receiveMessageFormat.get(),
+                            minecraftServer,
+                            event.from,
+                            rendered.component,
+                        )
+                    }.getOrElse {
+                        logger.warn("Failed to format message from receive message format. Using default.", it)
+                        Formatting.formatReceive(
+                            ChatExchangeConfig.receiveMessageFormat.default,
+                            minecraftServer,
+                            event.from,
+                            rendered.component,
+                        )
+                    }
                 }
 
                 logger.info(formatted.getStringWithLanguage(language))

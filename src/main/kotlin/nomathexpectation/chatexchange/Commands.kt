@@ -10,6 +10,7 @@ import nomathexpectation.chatexchange.image.MapArt
 import nomathexpectation.chatexchange.image.VirtualMapDisplay
 //? if < 26.1 {
 /*import nomathexpectation.chatexchange.image.ImageMenu
+import nomathexpectation.chatexchange.render.OneBotPool
 *///?}
 import org.apache.logging.log4j.LogManager
 
@@ -101,6 +102,27 @@ fun registerCommands(dispatcher: com.mojang.brigadier.CommandDispatcher<CommandS
                 1
             }
         ).then(imageCommand())
+        //? if < 26.1 {
+        /*.then(
+            Commands.literal("view").then(
+                Commands.argument("id", IntegerArgumentType.integer(0)).executes { context ->
+                    val player = context.source.player ?: kotlin.run {
+                        context.source.sendSystemMessage("chatexchange.const.onlyPlayer".toTranslatableComponent())
+                        return@executes 0
+                    }
+
+                    val id = IntegerArgumentType.getInteger(context, "id")
+                    if (OneBotPool.get(id) == null) {
+                        player.sendSystemMessage("chatexchange.onebot.expired".toTranslatableComponent())
+                        return@executes 0
+                    }
+
+                    OneBotPool.render(context.source.server, player, id)
+                    1
+                }
+            )
+        )
+        *///?}
         .executes { context ->
             context.source.sendSystemMessage(
                 "chatexchange.command.chatexchange.description".toTranslatableComponent()

@@ -72,7 +72,7 @@ object ImagePool {
             when (segment) {
                 is CICode.Segment.Text -> root.append(Component.literal(segment.text))
                 is CICode.Segment.Image -> {
-                    val entry = acquire(segment)
+                    val entry = segment.source?.let { acquire(it) }
                     if (entry != null) {
                         root.append(ImagePlaceholder.build(entry, server))
                     } else {
@@ -85,9 +85,12 @@ object ImagePool {
         return root
     }
 
-    private suspend fun acquire(segment: CICode.Segment.Image): Entry? {
-        val source = segment.source ?: return null
-
+    /**
+     * Downloads/decodes one image from an arbitrary source and registers the render
+     * artifacts in the pool; returns null when the source cannot be fetched or decoded.
+     * Shared by the CICode path and the OneBot image-segment renderer.
+     */
+    suspend fun acquire(source: CICode.ImageSource): Entry? {
         val bytes = when (source) {
             is CICode.ImageSource.Http -> download(source.url) ?: return null
             is CICode.ImageSource.Inline -> decodeBase64(source.base64) ?: return null
