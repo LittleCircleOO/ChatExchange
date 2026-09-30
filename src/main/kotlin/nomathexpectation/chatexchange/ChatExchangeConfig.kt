@@ -96,7 +96,7 @@ object ChatExchangeConfig {
         .define("pokeEnabled", false)
     val pokeFormat: ModConfigSpec.ConfigValue<String> = builder.comment("The message format for poke messages (used instead of receiveMessageFormat).", "Uses Simplified Text Format. Local vars: name (poker), action (poke action, localized default 戳了戳), target (poked user, nickname if known).")
         .translation("chatexchange.config.pokeFormat")
-        .define("pokeFormat", $$"""<yellow>* ${name} ${action} ${target}</yellow>""") { it: Any? ->
+        .define("pokeFormat", $$"""<yellow>* ${name} 👉 ${action} ${target}</yellow>""") { it: Any? ->
             Formatting.validate(it as? String)
         }
 
