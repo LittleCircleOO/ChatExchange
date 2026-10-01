@@ -57,7 +57,16 @@ fun BufferedImage.toMapColors(): ByteArray {
     return result
 }
 
-/** Smooth (area-averaging) scaling into [maxWidth] x [maxHeight] box, aspect-preserving and centered. */
+/**
+ * Scales the image into a [maxWidth] x [maxHeight] canvas (aspect-preserving, centered, transparent
+ * padding) using a self-contained exact-window box filter.
+ *
+ * Deliberately avoids [BufferedImage.getScaledInstance]: SCALE_SMOOTH routes through the
+ * ToolkitImage/AreaAveragingScaleFilter machinery, whose output has proven environment-dependent
+ * on modded servers (deterministically wrong rasters with identical input, palette and code),
+ * while SCALE_DEFAULT (plain replication, the Image2Map approach) is too crude for single-map art.
+ * Integer box averaging is deterministic on every JVM, thread and classpath.
+ */
 fun BufferedImage.scaleToFit(maxWidth: Int, maxHeight: Int): BufferedImage {
     var newWidth = width
     var newHeight = height
@@ -75,18 +84,54 @@ fun BufferedImage.scaleToFit(maxWidth: Int, maxHeight: Int): BufferedImage {
         newHeight = 1
     }
 
-    // getScaledInstance(SCALE_SMOOTH) performs multi-step area averaging on large
-    // downscales (the Image2Map approach); nearest-neighbour resampling loses detail
-    // that dithering cannot recover, which reads as heavy color bias on map art.
-    val scaled = getScaledInstance(newWidth, newHeight, BufferedImage.SCALE_SMOOTH)
+    val src = getRGB(0, 0, width, height, null, 0, width)
+    val dst = IntArray(maxWidth * maxHeight)
+    val offsetX = (maxWidth - newWidth) / 2
+    val offsetY = (maxHeight - newHeight) / 2
+
+    for (ty in 0 until newHeight) {
+        val sy0 = (ty.toLong() * height / newHeight).toInt()
+        var sy1 = ((ty + 1).toLong() * height / newHeight).toInt()
+        if (sy1 <= sy0) {
+            sy1 = sy0 + 1 // upscaling axis: window degenerates to the nearest source row
+        }
+        for (tx in 0 until newWidth) {
+            val sx0 = (tx.toLong() * width / newWidth).toInt()
+            var sx1 = ((tx + 1).toLong() * width / newWidth).toInt()
+            if (sx1 <= sx0) {
+                sx1 = sx0 + 1 // upscaling axis: window degenerates to the nearest source column
+            }
+
+            var sa = 0L
+            var sr = 0L
+            var sg = 0L
+            var sb = 0L
+            var count = 0L
+            var sy = sy0
+            while (sy < sy1) {
+                var sx = sx0
+                while (sx < sx1) {
+                    val p = src[sx + sy * width]
+                    sa += (p ushr 24) and 0xFF
+                    sr += (p shr 16) and 0xFF
+                    sg += (p shr 8) and 0xFF
+                    sb += p and 0xFF
+                    count++
+                    sx++
+                }
+                sy++
+            }
+
+            dst[offsetX + tx + (offsetY + ty) * maxWidth] =
+                (((sa + count / 2) / count).toInt() shl 24) or
+                    (((sr + count / 2) / count).toInt() shl 16) or
+                    (((sg + count / 2) / count).toInt() shl 8) or
+                    ((sb + count / 2) / count).toInt()
+        }
+    }
 
     val output = BufferedImage(maxWidth, maxHeight, BufferedImage.TYPE_INT_ARGB)
-    val graphics = output.createGraphics()
-    try {
-        graphics.drawImage(scaled, (maxWidth - newWidth) / 2, (maxHeight - newHeight) / 2, null)
-    } finally {
-        graphics.dispose()
-    }
+    output.setRGB(0, 0, maxWidth, maxHeight, dst, 0, maxWidth)
     return output
 }
 
