@@ -10,8 +10,10 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.dialog.ActionButton
 import net.minecraft.server.dialog.CommonButtonData
 import net.minecraft.server.dialog.CommonDialogData
+import net.minecraft.server.dialog.Dialog
 import net.minecraft.server.dialog.DialogAction
 import net.minecraft.server.dialog.MultiActionDialog
+import net.minecraft.server.dialog.NoticeDialog
 import net.minecraft.server.dialog.action.StaticAction
 import net.minecraft.server.dialog.body.PlainMessage
 import nomathexpectation.chatexchange.convert.ForwardContent
@@ -68,7 +70,7 @@ object OneBotInteractions {
             }
     }
 
-    private fun replyDialog(server: MinecraftServer, quoted: List<OneBotSegment>?, body: List<OneBotSegment>, level: Int): MultiActionDialog {
+    private fun replyDialog(server: MinecraftServer, quoted: List<OneBotSegment>?, body: List<OneBotSegment>, level: Int): Dialog {
         val nested = if (level < MessageRenderer.MAX_EXPAND_DEPTH) mutableListOf<ForwardContent>() else null
         val text = Component.literal("")
         if (quoted != null) {
@@ -83,7 +85,7 @@ object OneBotInteractions {
         return dialog("chatexchange.onebot.reply.dialog.title", text, nestedButtons(server, nested, level))
     }
 
-    private fun forwardDialog(server: MinecraftServer, content: ForwardContent, level: Int): MultiActionDialog {
+    private fun forwardDialog(server: MinecraftServer, content: ForwardContent, level: Int): Dialog {
         val nested = if (level < MessageRenderer.MAX_EXPAND_DEPTH) mutableListOf<ForwardContent>() else null
         val text = Component.literal("")
         content.records.forEachIndexed { index, record ->
@@ -100,7 +102,7 @@ object OneBotInteractions {
         return dialog("chatexchange.onebot.forward.dialog.title", text, nestedButtons(server, nested, level))
     }
 
-    private fun rawDialog(raw: String): MultiActionDialog {
+    private fun rawDialog(raw: String): Dialog {
         return dialog(
             "chatexchange.onebot.raw.dialog.title",
             Component.literal(truncate(raw, RAW_MAX_CHARS)),
@@ -130,11 +132,7 @@ object OneBotInteractions {
             ?: Component.translatable("chatexchange.onebot.forward.count", content.records.size)
     }
 
-    private fun dialog(titleKey: String, body: Component, actions: List<ActionButton>): MultiActionDialog {
-        val exitAction = ActionButton(
-            CommonButtonData(Component.translatable("chatexchange.image.dialog.close"), 150),
-            Optional.empty(),
-        )
+    private fun dialog(titleKey: String, body: Component, actions: List<ActionButton>): Dialog {
         val common = CommonDialogData(
             Component.translatable(titleKey),
             Optional.empty(),
@@ -143,6 +141,16 @@ object OneBotInteractions {
             DialogAction.CLOSE,
             listOf(PlainMessage(body, DIALOG_BODY_WIDTH)),
             listOf(),
+        )
+        if (actions.isEmpty()) {
+            // MultiActionDialog's codec rejects an empty "actions" list ("List must
+            // have contents"), which crashes any component re-encoding (e.g. console
+            // mods converting the broadcast to adventure); use a plain notice dialog.
+            return NoticeDialog(common, NoticeDialog.DEFAULT_ACTION)
+        }
+        val exitAction = ActionButton(
+            CommonButtonData(Component.translatable("chatexchange.image.dialog.close"), 150),
+            Optional.empty(),
         )
         return MultiActionDialog(common, actions, Optional.of(exitAction), 1)
     }

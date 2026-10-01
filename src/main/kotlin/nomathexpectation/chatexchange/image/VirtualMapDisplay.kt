@@ -52,12 +52,29 @@ object VirtualMapDisplay {
 
         val eye = player.eyePosition
         val look = player.getViewVector(1.0f)
-        val center = eye.add(look.scale(2.5))
-
-        val facing = if (kotlin.math.abs(look.x) > kotlin.math.abs(look.z)) {
-            if (look.x > 0) Direction.WEST else Direction.EAST
+        // Only the horizontal part of the view vector drives placement: the anchor
+        // block's Y must always come from the (pose-aware) eye position, otherwise
+        // any downward pitch of ~15° or more sinks the frame into the feet-level
+        // block and the preview reads as "on the ground" instead of face height.
+        var forwardX = look.x.toDouble()
+        var forwardZ = look.z.toDouble()
+        val horizontalLength = Math.sqrt(forwardX * forwardX + forwardZ * forwardZ)
+        if (horizontalLength < 1.0E-4) {
+            // Looking straight up/down: fall back to the body yaw so the preview
+            // still spawns in front of the player instead of on top of them.
+            val yaw = Math.toRadians(player.getYRot().toDouble())
+            forwardX = -Math.sin(yaw)
+            forwardZ = Math.cos(yaw)
         } else {
-            if (look.z > 0) Direction.NORTH else Direction.SOUTH
+            forwardX /= horizontalLength
+            forwardZ /= horizontalLength
+        }
+        val center = Vec3(eye.x + forwardX * 2.5, eye.y, eye.z + forwardZ * 2.5)
+
+        val facing = if (kotlin.math.abs(forwardX) > kotlin.math.abs(forwardZ)) {
+            if (forwardX > 0) Direction.WEST else Direction.EAST
+        } else {
+            if (forwardZ > 0) Direction.NORTH else Direction.SOUTH
         }
 
         val fakeId = FAKE_ID_BASE + fakeIdCounter.incrementAndGet()
