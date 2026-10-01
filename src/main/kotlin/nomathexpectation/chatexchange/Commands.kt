@@ -3,8 +3,13 @@ package nomathexpectation.chatexchange
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+import nomathexpectation.chatexchange.image.CICode
+import nomathexpectation.chatexchange.image.ImageDebug
 import nomathexpectation.chatexchange.image.ImagePool
 import nomathexpectation.chatexchange.image.MapArt
 import nomathexpectation.chatexchange.image.VirtualMapDisplay
@@ -181,6 +186,44 @@ private fun imageCommand(): com.mojang.brigadier.builder.LiteralArgumentBuilder<
                     }
 
                     MapArt.giveTo(player, entry)
+                    1
+                }
+            )
+        ).then(
+            Commands.literal("debug")
+                .requires { ImageDebug.enabled() }
+                .executes { context ->
+                    val summary = ImageDebug.runDiagnostics()
+                    context.source.sendSystemMessage("chatexchange.image.debug.done".toTranslatableComponent(summary))
+                    1
+                }
+        ).then(
+            Commands.literal("test").requires { ImageDebug.enabled() }.then(
+                Commands.argument("url", StringArgumentType.string()).executes { context ->
+                    val url = StringArgumentType.getString(context, "url")
+                    if (!url.startsWith("http://", ignoreCase = true) && !url.startsWith("https://", ignoreCase = true)) {
+                        context.source.sendSystemMessage("chatexchange.image.debug.test.invalidUrl".toTranslatableComponent())
+                        return@executes 0
+                    }
+
+                    val source = context.source
+                    source.sendSystemMessage("chatexchange.image.debug.test.started".toTranslatableComponent(url))
+                    CoroutineScope(Dispatchers.Default).launch {
+                        val entry = runCatching { ImagePool.acquire(CICode.ImageSource.Http(url)) }.getOrElse {
+                            logger.error("[image-debug] test fetch failed for {}", url, it)
+                            null
+                        }
+                        source.server.executeIfPossible {
+                            if (entry == null) {
+                                source.sendSystemMessage("chatexchange.image.debug.test.failed".toTranslatableComponent(url))
+                            } else {
+                                source.sendSystemMessage(
+                                    "chatexchange.image.debug.test.done".toTranslatableComponent(entry.id, entry.hash.take(12))
+                                )
+                                source.player?.let { VirtualMapDisplay.show(it, entry) }
+                            }
+                        }
+                    }
                     1
                 }
             )

@@ -41,6 +41,14 @@ object ImagePool {
 
     fun get(id: Int): Entry? = synchronized(lock) { entries[id] }
 
+    /** Debug access: snapshot of the cached entries, oldest first. */
+    fun recentEntries(): List<Entry> = synchronized(lock) { entries.values.toList() }
+
+    /** Debug access: the cached entry whose content produced the given real map id, if still cached. */
+    fun findEntryByMapId(mapId: Any): Entry? = synchronized(lock) {
+        entries.values.firstOrNull { hashToMapId[it.hash] == mapId }
+    }
+
     private fun put(entry: Entry) {
         val capacity = ChatExchangeConfig.imageCacheSize.get().coerceAtLeast(1)
         synchronized(lock) {
@@ -96,10 +104,15 @@ object ImagePool {
             is CICode.ImageSource.Inline -> decodeBase64(source.base64) ?: return null
         }
 
-        return process(bytes)
+        return process(bytes, describeSource(source))
     }
 
-    private fun process(bytes: ByteArray): Entry? {
+    private fun describeSource(source: CICode.ImageSource): String = when (source) {
+        is CICode.ImageSource.Http -> source.url
+        is CICode.ImageSource.Inline -> "inline base64 (${source.base64.length} chars)"
+    }
+
+    private fun process(bytes: ByteArray, sourceDescription: String): Entry? {
         val image = try {
             ImageIO.read(bytes.inputStream()) // GIF: first frame
         } catch (e: Exception) {
@@ -126,6 +139,9 @@ object ImagePool {
             dialogArtWidthChars = dialog.widthChars,
             mapColors = image.toMapColors(),
         )
+        if (ChatExchangeConfig.imageDebug.get()) {
+            ImageDebug.dumpProcessedImage(bytes, image, sourceDescription, entry)
+        }
         put(entry)
         return entry
     }

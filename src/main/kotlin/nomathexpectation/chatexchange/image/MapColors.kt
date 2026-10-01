@@ -213,4 +213,7 @@ object MapColors {
         val unsigned = index.toInt() and 0xFF
         return BY_INDEX[unsigned] ?: PALETTE[0]
     }
+
+    /** Debug access: the [r, g, b] row of a packed id, or null when the id is not a palette entry (e.g. NONE = 0). */
+    fun row(packed: Int): IntArray? = BY_INDEX[packed.coerceIn(0, 255)]
 }
